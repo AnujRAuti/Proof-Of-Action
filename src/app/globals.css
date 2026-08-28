@@ -1,0 +1,164 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,600&family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&family=Noto+Sans+Tamil:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Light Theme Tokens */
+  --bg-canvas: #FAFAF7;
+  --bg-surface: #FFFFFF;
+  --bg-surface-sunken: #F1F0EA;
+  --ink-primary: #1A1A17;
+  --ink-secondary: #5C5B54;
+  --ink-muted: #8B8A80;
+  --saffron: #FF9933;
+  --saffron-deep: #CC6E00;
+  --india-green: #138808;
+  --navy: #0B2447;
+  --risk-low: #138808;
+  --risk-medium: #D9A400;
+  --risk-high: #E8590C;
+  --risk-critical: #C0392B;
+  --border-hairline: #E4E2D8;
+
+  --font-serif: 'Fraunces', 'Source Serif 4', Georgia, serif;
+  --font-sans: 'Inter', 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+[data-theme="dark"] {
+  /* Dark Theme Tokens */
+  --bg-canvas: #0F0F0D;
+  --bg-surface: #181815;
+  --bg-surface-sunken: #212019;
+  --ink-primary: #F2F1EA;
+  --ink-secondary: #B4B2A5;
+  --ink-muted: #726F63;
+  --saffron: #FFA94D;
+  --saffron-deep: #FF922B;
+  --india-green: #3FBF3F;
+  --navy: #7FA8D9;
+  --risk-low: #3FBF3F;
+  --risk-medium: #F59E0B;
+  --risk-high: #FB923C;
+  --risk-critical: #F87171;
+  --border-hairline: #2A2A24;
+}
+
+* {
+  box-sizing: border-box;
+  border-color: var(--border-hairline);
+}
+
+html, body {
+  background-color: var(--bg-canvas);
+  color: var(--ink-primary);
+  font-family: var(--font-sans);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+/* Indic & Arabic Script Rhythm Adjustment */
+[lang="hi"], [lang="mr"], [lang="bn"], [lang="ta"], [lang="te"], [lang="gu"], [lang="kn"], [lang="ml"], [lang="pa"], [lang="or"] {
+  line-height: 1.6;
+}
+
+[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+}
+
+[dir="rtl"] .ltr-only {
+  direction: ltr;
+  text-align: left;
+}
+
+/* Tabular Numerals across data-dense views */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Tricolour Hairline Structural Decorator */
+.tricolour-hairline {
+  height: 2.5px;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    var(--saffron) 0%,
+    var(--saffron) 33.33%,
+    #FFFFFF 33.33%,
+    #FFFFFF 66.66%,
+    var(--india-green) 66.66%,
+    var(--india-green) 100%
+  );
+}
+
+[data-theme="dark"] .tricolour-hairline {
+  background: linear-gradient(
+    90deg,
+    var(--saffron) 0%,
+    var(--saffron) 33.33%,
+    #333330 33.33%,
+    #333330 66.66%,
+    var(--india-green) 66.66%,
+    var(--india-green) 100%
+  );
+}
+
+/* Restrained Transitions - 150ms fade + 8px rise */
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-page-enter {
+  animation: pageEnter 150ms ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .animate-page-enter {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-surface-sunken);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--ink-muted);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-secondary);
+}
+
+/* Accessible focus ring conforming to GIGW 3.0 */
+:focus-visible {
+  outline: 2px solid var(--saffron);
+  outline-offset: 2px;
+}
+
