@@ -22,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
+      <head suppressHydrationWarning>
         {/* Anti-Flash Theme Initializer */}
         <script
           dangerouslySetInnerHTML={{
@@ -50,7 +50,10 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="bg-canvas text-ink-primary antialiased flex flex-col min-h-screen">
+      <body
+        suppressHydrationWarning
+        className="bg-canvas text-ink-primary antialiased flex flex-col min-h-screen"
+      >
         <ThemeProvider>
           <I18nProvider>
             <AppProvider>

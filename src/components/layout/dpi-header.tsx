@@ -19,13 +19,15 @@ import {
   ChevronDown,
   Check,
   Camera,
-  Smartphone,
+  Users,
+  Building2,
+  LogIn,
 } from 'lucide-react';
 
 export function DpiHeader() {
   const { t, language, setLanguage, currentLanguage } = useI18n();
   const { theme, setTheme } = useTheme();
-  const { role, setRole, setIsCommandPaletteOpen, setIsShortcutsModalOpen } = useApp();
+  const { role, loginUser, currentUser, setIsCommandPaletteOpen, setIsShortcutsModalOpen } = useApp();
 
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [langQuery, setLangQuery] = useState('');
@@ -34,7 +36,6 @@ export function DpiHeader() {
   const langRef = useRef<HTMLDivElement>(null);
   const roleRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (langRef.current && !langRef.current.contains(e.target as Node)) {
@@ -55,12 +56,10 @@ export function DpiHeader() {
       l.script.toLowerCase().includes(langQuery.toLowerCase())
   );
 
-  const roles: { key: UserRole; label: string; desc: string }[] = [
-    { key: 'FIELD_OFFICER', label: 'फील्ड अधिकारी (Field Officer)', desc: 'सरल 3-स्टेप फोटो एवं निरीक्षण' },
-    { key: 'REVIEWER', label: t('role_reviewer', 'Evidence Reviewer'), desc: 'Assess anomalies, verify before/after, approve/reject' },
-    { key: 'PROGRAM_ADMIN', label: t('role_admin', 'Program Administrator'), desc: 'Macro monitoring, policy thresholds, project health' },
-    { key: 'AUDITOR', label: t('role_auditor', 'Senior Auditor'), desc: 'Cross-scheme audit, forensic graphs, certificate issue' },
-    { key: 'API_CLIENT', label: t('role_api', 'API Client'), desc: 'Automated webhook ingestion & SDK token management' },
+  const roleConfigs: { key: UserRole; label: string; desc: string; href: string }[] = [
+    { key: 'CITIZEN', label: 'Citizen (नागरिक)', desc: 'Track local projects & voice concerns', href: '/citizen' },
+    { key: 'SUPERVISOR', label: 'Field Supervisor (सुपरवाइजर)', desc: 'Guided outdoor 3-step evidence upload', href: '/supervisor' },
+    { key: 'REVIEWER', label: 'Government Reviewer (समीक्षक)', desc: '7-signal fusion, review queue & audit', href: '/reviewer' },
   ];
 
   return (
@@ -83,98 +82,74 @@ export function DpiHeader() {
                 <span className="font-serif font-bold text-base text-ink-primary tracking-tight group-hover:text-saffron-deep dark:group-hover:text-saffron transition-colors">
                   {t('app_title', 'Proof-of-Action')}
                 </span>
-                <span className="hidden md:inline-flex items-center px-1.5 py-0.5 rounded bg-surface-sunken border border-border-hairline text-[10px] font-semibold text-ink-secondary tracking-wide uppercase">
-                  EIIL DPI v2.4
-                </span>
+              
               </div>
-              <span className="text-[11px] text-ink-secondary font-medium tracking-tight truncate max-w-[220px] sm:max-w-none">
+              <span className="text-[11px] text-ink-secondary font-medium tracking-tight truncate max-w-[200px] sm:max-w-none">
                 {t('dept_label', 'Government of India • Digital Public Infrastructure')}
               </span>
             </div>
           </Link>
         </div>
 
-        {/* Prominent Quick "Field Mode (सरल फील्ड मोड)" button for easy one-tap access */}
-        <div className="flex items-center gap-2">
+        {/* 3 Direct Role Quick Switcher Pills for Jury / Evaluation */}
+        <div className="hidden md:flex items-center gap-1 bg-surface-sunken p-1 rounded-lg border border-border-hairline text-xs font-semibold">
           <Link
-            href="/field"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-india-green text-surface hover:bg-india-green/90 font-bold text-xs shadow-subtle transition-all transform hover:scale-105 active:scale-95"
-            title="सरल फील्ड फोटो मोड खोलें (Open Simple 3-Step Field Camera)"
+            href="/citizen"
+            onClick={() => loginUser('CITIZEN')}
+            className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 ${
+              role === 'CITIZEN'
+                ? 'bg-surface text-saffron-deep dark:text-saffron shadow-subtle font-bold'
+                : 'text-ink-secondary hover:text-ink-primary'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>Citizen</span>
+          </Link>
+          <Link
+            href="/supervisor"
+            onClick={() => loginUser('SUPERVISOR')}
+            className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 ${
+              role === 'SUPERVISOR'
+                ? 'bg-surface text-india-green shadow-subtle font-bold'
+                : 'text-ink-secondary hover:text-ink-primary'
+            }`}
           >
             <Camera className="w-3.5 h-3.5" />
-            <span>सरल फील्ड मोड (Field Camera)</span>
+            <span>Supervisor</span>
+          </Link>
+          <Link
+            href="/reviewer"
+            onClick={() => loginUser('REVIEWER')}
+            className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 ${
+              role === 'REVIEWER' || role === 'PROGRAM_ADMIN' || role === 'AUDITOR'
+                ? 'bg-surface text-navy dark:text-[#7FA8D9] shadow-subtle font-bold'
+                : 'text-ink-secondary hover:text-ink-primary'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Reviewer</span>
           </Link>
         </div>
 
-        {/* Center Search & Command Palette Trigger */}
-        <div className="hidden xl:flex items-center flex-1 max-w-sm mx-2">
+        {/* Right Utility Bar: Search, Language Palette, Theme Toggle, Auth */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Global Search (Cmd+K) */}
           <button
             onClick={() => setIsCommandPaletteOpen(true)}
-            className="w-full flex items-center justify-between px-3 py-1.5 rounded-md bg-surface-sunken border border-border-hairline text-ink-muted hover:text-ink-secondary hover:border-ink-muted text-xs transition-colors focus:outline-none"
-            title="Search projects, evidence hash, district (Cmd+K)"
+            className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded bg-surface-sunken border border-border-hairline text-ink-muted hover:text-ink-secondary text-xs"
+            title="Search projects, evidence hash (Cmd+K)"
           >
-            <span className="flex items-center gap-2">
-              <Search className="w-3.5 h-3.5 text-ink-muted" />
-              <span>{t('btn_search_placeholder', 'Search projects, hash...')}</span>
-            </span>
-            <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-surface border border-border-hairline text-[10px] font-mono text-ink-secondary">
-              <span className="text-xs">⌘</span>K
-            </kbd>
+            <Search className="w-3.5 h-3.5" />
+            <span>Search...</span>
+            <kbd className="text-[10px] font-mono bg-surface px-1 py-0.2 rounded border">⌘K</kbd>
           </button>
-        </div>
 
-        {/* Right Utility Bar: Role Switcher, Language Palette, Theme Toggle */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Active Persona / Role Switcher */}
-          <div className="relative" ref={roleRef}>
-            <button
-              onClick={() => setIsRoleOpen(!isRoleOpen)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-surface-sunken border border-border-hairline text-ink-primary hover:border-ink-muted text-xs font-medium transition-colors"
-              title="Switch Active User Role for Testing"
-            >
-              <UserCheck className="w-3.5 h-3.5 text-saffron-deep dark:text-saffron" />
-              <span className="hidden sm:inline-block max-w-[100px] truncate">
-                {roles.find((r) => r.key === role)?.label || role}
-              </span>
-              <ChevronDown className="w-3 h-3 text-ink-muted" />
-            </button>
-
-            {isRoleOpen && (
-              <div className="absolute right-0 rtl:right-auto rtl:left-0 mt-1.5 w-64 rounded-md bg-surface border border-border-hairline shadow-dropdown p-1.5 z-50 animate-page-enter">
-                <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-ink-muted border-b border-border-hairline mb-1">
-                  Active Persona &amp; Permissions
-                </div>
-                {roles.map((r) => (
-                  <button
-                    key={r.key}
-                    onClick={() => {
-                      setRole(r.key);
-                      setIsRoleOpen(false);
-                    }}
-                    className={`w-full text-left rtl:text-right px-2.5 py-1.5 rounded text-xs flex flex-col gap-0.5 transition-colors ${
-                      role === r.key
-                        ? 'bg-surface-sunken font-semibold text-ink-primary'
-                        : 'text-ink-secondary hover:bg-surface-sunken/60 hover:text-ink-primary'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span>{r.label}</span>
-                      {role === r.key && <Check className="w-3.5 h-3.5 text-india-green" />}
-                    </div>
-                    <span className="text-[10px] text-ink-muted font-normal leading-tight">{r.desc}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Language Selector Command-Palette Modal */}
+          {/* Language Selector */}
           <div className="relative" ref={langRef}>
             <button
               onClick={() => setIsLangOpen(!isLangOpen)}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-surface-sunken border border-border-hairline text-ink-primary hover:border-ink-muted text-xs font-medium transition-colors"
               title="Select Platform Language (12 Indian Languages Supported)"
-              aria-label="Language Selector"
             >
               <Globe className="w-3.5 h-3.5 text-navy dark:text-[#7FA8D9]" />
               <span className="text-xs font-semibold">{currentLanguage.nativeName}</span>
@@ -217,9 +192,6 @@ export function DpiHeader() {
                       {language === l.code && <Check className="w-4 h-4 text-india-green" />}
                     </button>
                   ))}
-                  {filteredLanguages.length === 0 && (
-                    <div className="px-2 py-3 text-center text-xs text-ink-muted">No language matches</div>
-                  )}
                 </div>
               </div>
             )}
@@ -229,7 +201,6 @@ export function DpiHeader() {
           <div
             className="flex items-center bg-surface-sunken border border-border-hairline rounded p-0.5"
             role="group"
-            aria-label="Theme switcher"
           >
             <button
               onClick={() => setTheme('light')}
@@ -239,7 +210,6 @@ export function DpiHeader() {
                   : 'text-ink-muted hover:text-ink-secondary'
               }`}
               title="Light Mode"
-              aria-label="Light Theme"
             >
               <Sun className="w-3.5 h-3.5" />
             </button>
@@ -251,7 +221,6 @@ export function DpiHeader() {
                   : 'text-ink-muted hover:text-ink-secondary'
               }`}
               title="Dark Mode"
-              aria-label="Dark Theme"
             >
               <Moon className="w-3.5 h-3.5" />
             </button>
@@ -263,21 +232,19 @@ export function DpiHeader() {
                   : 'text-ink-muted hover:text-ink-secondary'
               }`}
               title="System Theme Preference"
-              aria-label="System Theme"
             >
               <Laptop className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          {/* Keyboard Shortcuts Trigger */}
-          <button
-            onClick={() => setIsShortcutsModalOpen(true)}
-            className="hidden sm:flex items-center justify-center p-1.5 rounded bg-surface-sunken border border-border-hairline text-ink-muted hover:text-ink-primary text-xs transition-colors"
-            title="Keyboard Shortcuts (?)"
-            aria-label="Keyboard Shortcuts"
+          {/* Sign In / Sign Up Link */}
+          <Link
+            href="/login"
+            className="px-3 py-1 rounded bg-saffron text-ink-primary font-bold text-xs hover:bg-saffron-deep transition-colors shadow-subtle flex items-center gap-1"
           >
-            <Keyboard className="w-3.5 h-3.5" />
-          </button>
+            <LogIn className="w-3.5 h-3.5" />
+            <span>Sign In</span>
+          </Link>
         </div>
       </div>
     </header>
