@@ -16,11 +16,16 @@ import {
   AlertTriangle,
   ArrowRight,
   Info,
+  MapPin,
+  Calendar,
+  Building2,
+  FileCheck,
+  ShieldCheck,
 } from 'lucide-react';
 
 export default function BeforeAfterComparePage() {
   const { t } = useI18n();
-  const { evidenceList } = useApp();
+  const { evidenceList, projects } = useApp();
 
   const comparisonPairs = evidenceList.filter((e) => e.beforeImageUrl);
   const [selectedPairId, setSelectedPairId] = useState<string>(
@@ -28,9 +33,11 @@ export default function BeforeAfterComparePage() {
   );
 
   const activeEvidence = evidenceList.find((e) => e.id === selectedPairId) || evidenceList[0];
+  const activeProject = projects.find((p) => p.id === activeEvidence.projectId) || projects[0];
+
   const beforeImg =
     activeEvidence.beforeImageUrl ||
-    'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1200&q=80';
+    'https://images.unsplash.com/photo-1590486803833-1c5dc8ddd4c8?auto=format&fit=crop&w=1200&q=80';
   const afterImg = activeEvidence.imageUrl;
 
   const [mode, setMode] = useState<'SLIDER' | 'SIDE_BY_SIDE'>('SLIDER');
@@ -58,7 +65,7 @@ export default function BeforeAfterComparePage() {
     if (e.touches[0]) handleSliderMove(e.touches[0].clientX);
   };
 
-  const changeScore = activeEvidence.structuralChangeConfidence || 88;
+  const changeScore = activeEvidence.structuralChangeConfidence || 91;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-[1440px] mx-auto space-y-6">
@@ -69,24 +76,26 @@ export default function BeforeAfterComparePage() {
             <h1 className="font-serif font-bold text-xl sm:text-2xl text-ink-primary tracking-tight">
               {t('nav_compare', 'Before / After Visual Change Comparator')}
             </h1>
-            <span className="text-xs px-2 py-0.5 rounded bg-india-green/15 text-india-green font-bold">
-              AI Structural Diff Active
+            <span className="text-xs px-2.5 py-0.5 rounded bg-india-green/15 text-india-green font-bold flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Spatial Homography Aligned</span>
             </span>
           </div>
           <p className="text-xs text-ink-secondary mt-1">
-            Pixel-aligned temporal registration, structural boundary verification, and change-confidence scoring.
+            Pixel-registered visual comparison verifying measurable physical construction progression across project milestones.
           </p>
         </div>
 
         {/* Comparison Case Selector */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-ink-muted hidden sm:inline">Select Milestone:</span>
           <select
             value={selectedPairId}
             onChange={(e) => {
               setSelectedPairId(e.target.value);
               setSliderPos(50);
             }}
-            className="px-3 py-1.5 rounded bg-surface border border-border-hairline text-xs font-semibold text-ink-primary focus:outline-none focus:border-saffron"
+            className="px-3 py-2 rounded-xl bg-surface border border-border-hairline text-xs font-bold text-ink-primary focus:outline-none focus:border-saffron"
           >
             {comparisonPairs.map((p) => (
               <option key={p.id} value={p.id}>
@@ -97,46 +106,83 @@ export default function BeforeAfterComparePage() {
         </div>
       </div>
 
+      {/* Prominent Project Dossier Association Bar (Section 8 & 12) */}
+      <div className="bg-surface border-2 border-border-hairline rounded-2xl p-5 shadow-subtle flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="font-mono font-bold text-xs px-2.5 py-0.5 rounded bg-surface-sunken border border-border-hairline text-ink-primary">
+              {activeProject.id}
+            </span>
+            <span className="text-xs font-semibold text-saffron-deep dark:text-saffron">
+              {activeProject.scheme}
+            </span>
+            <span className="text-[10px] px-2 py-0.5 rounded bg-surface-sunken text-ink-muted border">
+              Demo Evidence
+            </span>
+          </div>
+          <h2 className="font-serif font-bold text-base sm:text-lg text-ink-primary">
+            PROJECT: {activeProject.name}
+          </h2>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-ink-secondary">
+            <span className="flex items-center gap-1">
+              <MapPin className="w-3.5 h-3.5 text-ink-muted" />
+              {activeProject.district}, {activeProject.state} ({activeProject.block} Block)
+            </span>
+            <span>•</span>
+            <span>Geofence: {activeProject.geofenceRadiusMeters}m radius</span>
+            <span>•</span>
+            <span>Sanctioned Budget: ₹{(activeProject.budgetInr / 10000000).toFixed(2)} Cr</span>
+          </div>
+        </div>
+
+        <Link
+          href={`/reviewer/projects/${activeProject.id}`}
+          className="px-4 py-2 rounded-xl bg-surface-sunken hover:bg-surface border border-border-hairline text-ink-primary font-bold text-xs self-start md:self-center shrink-0 transition-colors"
+        >
+          View Full Project Dossier →
+        </Link>
+      </div>
+
       {/* Mode & Control Toolbar */}
-      <div className="bg-surface border border-border-hairline rounded p-3 shadow-subtle flex flex-wrap items-center justify-between gap-3 text-xs">
+      <div className="bg-surface border border-border-hairline rounded-xl p-3 shadow-subtle flex flex-wrap items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-2">
           {/* View Mode Segmented Switcher */}
-          <div className="flex items-center bg-surface-sunken border border-border-hairline rounded p-0.5">
+          <div className="flex items-center bg-surface-sunken border border-border-hairline rounded-lg p-0.5">
             <button
               onClick={() => setMode('SLIDER')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-colors ${
                 mode === 'SLIDER'
                   ? 'bg-surface text-ink-primary shadow-subtle font-bold'
                   : 'text-ink-muted hover:text-ink-secondary'
               }`}
             >
               <SplitSquareVertical className="w-3.5 h-3.5" />
-              <span>Interactive Split Curtain</span>
+              <span>Split Curtain Slider</span>
             </button>
             <button
               onClick={() => setMode('SIDE_BY_SIDE')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-colors ${
                 mode === 'SIDE_BY_SIDE'
                   ? 'bg-surface text-ink-primary shadow-subtle font-bold'
                   : 'text-ink-muted hover:text-ink-secondary'
               }`}
             >
               <Columns className="w-3.5 h-3.5" />
-              <span>Side-by-Side</span>
+              <span>Side-by-Side Dual View</span>
             </button>
           </div>
 
           {/* Difference Overlay Toggle */}
           <button
             onClick={() => setShowDifferenceOverlay(!showDifferenceOverlay)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded border transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-colors ${
               showDifferenceOverlay
                 ? 'bg-saffron text-ink-primary border-saffron-deep font-bold'
                 : 'bg-surface-sunken border-border-hairline text-ink-secondary hover:text-ink-primary'
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>Difference Heatmap Overlay</span>
+            <span>Highlight Physical Change Zone</span>
           </button>
         </div>
 
@@ -144,7 +190,7 @@ export default function BeforeAfterComparePage() {
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => setZoomLevel((prev) => Math.min(prev + 0.25, 2.5))}
-            className="p-1.5 rounded bg-surface-sunken hover:bg-surface-sunken/80 border border-border-hairline text-ink-primary"
+            className="p-1.5 rounded-lg bg-surface-sunken hover:bg-surface-sunken/80 border border-border-hairline text-ink-primary"
             title="Zoom In"
           >
             <ZoomIn className="w-3.5 h-3.5" />
@@ -154,14 +200,14 @@ export default function BeforeAfterComparePage() {
           </span>
           <button
             onClick={() => setZoomLevel((prev) => Math.max(prev - 0.25, 0.75))}
-            className="p-1.5 rounded bg-surface-sunken hover:bg-surface-sunken/80 border border-border-hairline text-ink-primary"
+            className="p-1.5 rounded-lg bg-surface-sunken hover:bg-surface-sunken/80 border border-border-hairline text-ink-primary"
             title="Zoom Out"
           >
             <ZoomOut className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => setZoomLevel(1)}
-            className="p-1.5 rounded bg-surface-sunken hover:bg-surface-sunken/80 border border-border-hairline text-ink-primary"
+            className="p-1.5 rounded-lg bg-surface-sunken hover:bg-surface-sunken/80 border border-border-hairline text-ink-primary"
             title="Reset Zoom"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -169,7 +215,7 @@ export default function BeforeAfterComparePage() {
         </div>
       </div>
 
-      {/* Main Interactive Comparison Stage */}
+      {/* Main Comparison Canvas */}
       {mode === 'SLIDER' ? (
         <div
           ref={containerRef}
@@ -178,7 +224,7 @@ export default function BeforeAfterComparePage() {
           onMouseLeave={handleMouseUp}
           onMouseMove={handleMouseMove}
           onTouchMove={handleTouchMove}
-          className="relative w-full aspect-[16/9] max-h-[600px] bg-ink-primary rounded border border-border-hairline overflow-hidden shadow-subtle select-none cursor-ew-resize"
+          className="relative w-full aspect-[16/9] max-h-[580px] bg-ink-primary rounded-2xl border border-border-hairline overflow-hidden shadow-subtle select-none cursor-ew-resize"
         >
           {/* AFTER Image Layer (Full Background) */}
           <div
@@ -193,8 +239,8 @@ export default function BeforeAfterComparePage() {
 
             {/* Difference Heatmap Simulation Layer */}
             {showDifferenceOverlay && (
-              <div className="absolute inset-0 bg-india-green/20 mix-blend-color-burn pointer-events-none flex items-center justify-center">
-                <div className="border-4 border-dashed border-india-green rounded p-4 bg-india-green/30 backdrop-blur-xs text-surface font-bold text-sm">
+              <div className="absolute inset-0 bg-india-green/25 mix-blend-color-burn pointer-events-none flex items-center justify-center">
+                <div className="border-4 border-dashed border-india-green rounded-xl p-4 bg-india-green/40 backdrop-blur-xs text-surface font-bold text-sm shadow-dropdown">
                   Verified Structural Alteration Zone ({changeScore}% Confidence)
                 </div>
               </div>
@@ -228,75 +274,100 @@ export default function BeforeAfterComparePage() {
             </div>
           </div>
 
-          {/* Floating Pill Labels */}
-          <div className="absolute top-3 left-3 z-20 px-2.5 py-1 rounded bg-ink-primary/80 backdrop-blur-sm text-surface text-xs font-bold font-mono">
-            BEFORE (Baseline Survey)
+          {/* Floating Labels */}
+          <div className="absolute top-3 left-3 z-20 px-3 py-1.5 rounded-lg bg-ink-primary/90 backdrop-blur-sm text-surface text-xs font-bold font-mono">
+            BEFORE (Baseline Site Survey)
           </div>
-          <div className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded bg-saffron text-ink-primary text-xs font-bold font-mono shadow">
-            AFTER (Execution Stage)
+          <div className="absolute top-3 right-3 z-20 px-3 py-1.5 rounded-lg bg-saffron text-ink-primary text-xs font-bold font-mono shadow">
+            AFTER (Completed Asphalt Surface)
           </div>
         </div>
       ) : (
         /* Side-by-Side Dual View Mode */
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-surface border border-border-hairline rounded overflow-hidden shadow-subtle">
-            <div className="p-2.5 bg-surface-sunken border-b border-border-hairline font-bold text-xs flex justify-between items-center">
-              <span className="font-mono text-ink-primary">BEFORE: Baseline Survey</span>
-              <span className="text-[10px] text-ink-muted">Pre-construction State</span>
+          <div className="bg-surface border border-border-hairline rounded-2xl overflow-hidden shadow-subtle">
+            <div className="p-3 bg-surface-sunken border-b border-border-hairline font-bold text-xs flex justify-between items-center">
+              <span className="font-mono text-ink-primary">BEFORE: Baseline Site Survey</span>
+              <span className="text-[10px] text-ink-muted">Recorded Mar 2026</span>
             </div>
             <div className="aspect-[4/3] relative bg-ink-primary overflow-hidden">
               <img src={beforeImg} alt="Before State" className="w-full h-full object-cover" />
             </div>
+            <div className="p-3 text-xs text-ink-secondary space-y-1">
+              <div className="font-semibold text-ink-primary">Pre-construction unpaved dirt subgrade with potholes</div>
+              <div className="font-mono text-[10px] text-ink-muted">Lat: {activeProject.centroid.lat}° N, Lng: {activeProject.centroid.lng}° E</div>
+            </div>
           </div>
 
-          <div className="bg-surface border border-border-hairline rounded overflow-hidden shadow-subtle">
-            <div className="p-2.5 bg-surface-sunken border-b border-border-hairline font-bold text-xs flex justify-between items-center">
-              <span className="font-mono text-saffron-deep dark:text-saffron">AFTER: Execution Submission</span>
-              <span className="text-[10px] text-india-green font-bold">Change Confirmed</span>
+          <div className="bg-surface border border-border-hairline rounded-2xl overflow-hidden shadow-subtle">
+            <div className="p-3 bg-surface-sunken border-b border-border-hairline font-bold text-xs flex justify-between items-center">
+              <span className="font-mono text-saffron-deep dark:text-saffron">AFTER: Completed Execution</span>
+              <span className="text-[10px] text-india-green font-bold">Verified Asphalt Top</span>
             </div>
             <div className="aspect-[4/3] relative bg-ink-primary overflow-hidden">
               <img src={afterImg} alt="After State" className="w-full h-full object-cover" />
+            </div>
+            <div className="p-3 text-xs text-ink-secondary space-y-1">
+              <div className="font-semibold text-ink-primary">Completed 40mm thick asphalt concrete wearing carpet</div>
+              <div className="font-mono text-[10px] text-ink-muted">Lat: {activeEvidence.location.lat}° N, Lng: {activeEvidence.location.lng}° E</div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Structural Change Analysis Card */}
-      <div className="bg-surface border border-border-hairline rounded p-5 shadow-subtle grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
-        <div className="space-y-1.5">
-          <span className="text-ink-muted uppercase font-bold text-[10px]">Structural Change Index</span>
-          <div className="flex items-baseline gap-2">
-            <span className="font-serif text-3xl font-bold text-ink-primary tabular-nums">
-              {changeScore}%
-            </span>
-            <span className="text-india-green font-semibold">High Transformation</span>
+      {/* 4 Multi-Signal Verification Badges (Section 11 & 12) */}
+      <div className="bg-surface border border-border-hairline rounded-2xl p-5 shadow-subtle space-y-4">
+        <h3 className="font-serif font-bold text-sm text-ink-primary">
+          Evidence Consistency &amp; Verification Signals
+        </h3>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          <div className="p-3 rounded-xl bg-india-green/10 border border-india-green/30 space-y-1">
+            <div className="flex items-center gap-1.5 font-bold text-india-green">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Same Project Boundary</span>
+            </div>
+            <p className="text-[11px] text-ink-secondary">
+              Both photographs reside within the approved 150m geofence radius.
+            </p>
           </div>
-          <p className="text-ink-secondary leading-snug">
-            Computer vision keypoint analysis confirms tangible physical work (asphalt surfacing / slab waterproofing).
-          </p>
+
+          <div className="p-3 rounded-xl bg-india-green/10 border border-india-green/30 space-y-1">
+            <div className="flex items-center gap-1.5 font-bold text-india-green">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>GPS Location Consistent</span>
+            </div>
+            <p className="text-[11px] text-ink-secondary">
+              Distance offset is 28 meters from site centroid (Within 50m tolerance).
+            </p>
+          </div>
+
+          <div className="p-3 rounded-xl bg-india-green/10 border border-india-green/30 space-y-1">
+            <div className="flex items-center gap-1.5 font-bold text-india-green">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Timeline Consistent</span>
+            </div>
+            <p className="text-[11px] text-ink-secondary">
+              Captured 5 months after baseline survey, matching construction DPR schedule.
+            </p>
+          </div>
+
+          <div className="p-3 rounded-xl bg-india-green/10 border border-india-green/30 space-y-1">
+            <div className="flex items-center gap-1.5 font-bold text-india-green">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Structural Change Confirmed</span>
+            </div>
+            <p className="text-[11px] text-ink-secondary">
+              {changeScore}% transformation index verifying authentic physical progression.
+            </p>
+          </div>
         </div>
 
-        <div className="space-y-1.5">
-          <span className="text-ink-muted uppercase font-bold text-[10px]">Perspective Alignment</span>
-          <div className="flex items-center gap-2 text-india-green font-bold text-sm">
-            <CheckCircle2 className="w-4 h-4" />
-            <span>Homography Invariant Match</span>
-          </div>
-          <p className="text-ink-secondary leading-snug">
-            Horizon line, background tree foliage, and survey benchmark coordinates match the baseline camera angle.
-          </p>
-        </div>
-
-        <div className="space-y-2 flex flex-col justify-between">
-          <div>
-            <span className="text-ink-muted uppercase font-bold text-[10px]">Audited Submission ID</span>
-            <span className="font-mono font-bold block text-sm text-ink-primary mt-0.5">
-              {activeEvidence.id}
-            </span>
-          </div>
+        <div className="pt-3 border-t border-border-hairline flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-ink-muted">
+          <span>Audited Evidence ID: <strong className="font-mono text-ink-primary">{activeEvidence.id}</strong></span>
           <Link
-            href={`/evidence/${activeEvidence.id}`}
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded bg-ink-primary text-surface font-semibold hover:opacity-90 transition-opacity"
+            href={`/reviewer/evidence/${activeEvidence.id}`}
+            className="px-4 py-2 rounded-xl bg-ink-primary text-surface font-bold hover:opacity-90 transition-opacity flex items-center gap-1.5"
           >
             <span>Open Complete Evidence Dossier</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -306,4 +377,3 @@ export default function BeforeAfterComparePage() {
     </div>
   );
 }
-

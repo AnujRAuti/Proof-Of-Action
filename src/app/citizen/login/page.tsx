@@ -19,13 +19,20 @@ export default function CitizenLoginPage() {
   const { t } = useI18n();
   const { loginUser } = useApp();
 
-  const [phone, setPhone] = useState('+91 98230 11223');
+  const [phone, setPhone] = useState('');
+  const [phoneError, setPhoneError] = useState('');
   const [step, setStep] = useState<'PHONE' | 'OTP' | 'AADHAAR'>('PHONE');
   const [otp, setOtp] = useState('');
   const [aadhaarLast4, setAadhaarLast4] = useState('4821');
 
   const handleSendOtp = (e: React.FormEvent) => {
     e.preventDefault();
+    setPhoneError('');
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length < 10) {
+      setPhoneError('Please enter a valid 10-digit mobile number');
+      return;
+    }
     setStep('OTP');
   };
 
@@ -38,7 +45,7 @@ export default function CitizenLoginPage() {
     e.preventDefault();
     loginUser('CITIZEN', {
       name: 'Aarav Deshmukh',
-      phone,
+      phone: phone.startsWith('+91') ? phone : `+91 ${phone}`,
       isAadhaarVerified: true,
       district: 'Pune',
       state: 'Maharashtra',
@@ -86,16 +93,25 @@ export default function CitizenLoginPage() {
             <form onSubmit={handleSendOtp} className="space-y-4 text-xs">
               <div className="space-y-1">
                 <label className="font-bold text-ink-primary block">
-                  Mobile Phone Number (मोबाइल नंबर):
+                  Mobile Phone Number (10 Digits):
                 </label>
                 <input
                   type="tel"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => {
+                    setPhone(e.target.value);
+                    if (phoneError) setPhoneError('');
+                  }}
                   placeholder="+91 98765 43210"
-                  className="w-full px-3.5 py-2.5 rounded-lg bg-surface-sunken border border-border-hairline text-ink-primary font-mono text-sm focus:outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-surface-sunken border border-border-hairline text-ink-primary font-mono text-sm focus:outline-none focus:border-saffron"
                   required
+                  autoFocus
                 />
+                {phoneError && (
+                  <p className="text-[11px] text-risk-critical font-medium mt-1">
+                    {phoneError}
+                  </p>
+                )}
               </div>
 
               <p className="text-[11px] text-ink-muted">
@@ -115,23 +131,25 @@ export default function CitizenLoginPage() {
           {/* Step 2: OTP */}
           {step === 'OTP' && (
             <form onSubmit={handleVerifyOtp} className="space-y-4 text-xs">
-              <div className="space-y-1">
-                <label className="font-bold text-ink-primary block">
-                  Enter 6-Digit OTP received on {phone}:
-                </label>
+              <div className="space-y-1.5 p-3.5 bg-saffron/10 border border-saffron/30 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-ink-primary block">
+                    Enter 6-Digit OTP:
+                  </label>
+                  <span className="text-[10px] font-mono text-india-green font-bold bg-surface px-2 py-0.5 rounded border">
+                    Demo OTP: 123456
+                  </span>
+                </div>
                 <input
                   type="text"
                   maxLength={6}
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
                   placeholder="123456"
-                  className="w-full px-3.5 py-2.5 rounded-lg bg-surface-sunken border border-border-hairline text-ink-primary font-mono text-lg tracking-widest text-center focus:outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-surface border border-border-hairline text-ink-primary font-mono text-lg tracking-widest text-center focus:outline-none focus:border-saffron"
                   required
                   autoFocus
                 />
-                <span className="text-[10px] text-india-green block text-center font-semibold">
-                  ✓ Demo verification code: 123456
-                </span>
               </div>
 
               <button
@@ -144,7 +162,7 @@ export default function CitizenLoginPage() {
             </form>
           )}
 
-          {/* Step 3: Aadhaar Verification (Demo Flow - Section 2) */}
+          {/* Step 3: Aadhaar Verification (Demo Flow) */}
           {step === 'AADHAAR' && (
             <form onSubmit={handleCompleteAadhaar} className="space-y-4 text-xs">
               <div className="p-3.5 bg-india-green/10 border border-india-green/30 rounded-xl space-y-2">
@@ -172,8 +190,8 @@ export default function CitizenLoginPage() {
 
           {/* Footer */}
           <div className="pt-4 border-t border-border-hairline flex items-center justify-between text-xs text-ink-muted">
-            <Link href="/login" className="hover:text-ink-primary">
-              ← Other Roles
+            <Link href="/" className="hover:text-ink-primary">
+              ← Return Home
             </Link>
             <Link href="/signup" className="hover:text-ink-primary font-semibold text-saffron-deep dark:text-saffron">
               Create New Account →

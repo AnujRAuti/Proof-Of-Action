@@ -330,7 +330,7 @@ export const MOCK_EVIDENCE_ITEMS: EvidenceItem[] = [
     stage: 'after',
     title: 'Completed 4.2 km Bituminous Surface with White Edge Thermal Markings',
     imageUrl: 'https://images.unsplash.com/photo-1517649763962-0c623266ddc0?auto=format&fit=crop&w=1200&q=80',
-    beforeImageUrl: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1200&q=80',
+    beforeImageUrl: 'https://images.unsplash.com/photo-1590486803833-1c5dc8ddd4c8?auto=format&fit=crop&w=1200&q=80',
     mimeType: 'image/jpeg',
     sizeBytes: 3842100,
     sha256: '9f83a48e71b29d8164bc77f202e88a014902cd51772183e89f8a31362e08c491',

@@ -24,8 +24,8 @@ export default function CitizenSignupPage() {
 
   // Wizard Steps: 1 = Phone & OTP, 2 = Name & Location, 3 = Optional Aadhaar Badge
   const [step, setStep] = useState<number>(1);
-  const [phone, setPhone] = useState('+91 98230 11223');
-  const [otp, setOtp] = useState('123456');
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
   const [name, setName] = useState('Ramesh Sharma');
   const [district, setDistrict] = useState('Pune');
   const [pincode, setPincode] = useState('412301');

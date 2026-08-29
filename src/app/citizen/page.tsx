@@ -34,6 +34,19 @@ export default function CitizenHomePage() {
     { key: 'SOLAR', label: 'Solar (सौर ऊर्जा)' },
   ];
 
+  const getProjectImg = (scheme: string) => {
+    if (scheme.includes('Jal') || scheme.includes('Water')) {
+      return 'https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=400&q=80';
+    }
+    if (scheme.includes('Shiksha') || scheme.includes('School')) {
+      return 'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?auto=format&fit=crop&w=400&q=80';
+    }
+    if (scheme.includes('KUSUM') || scheme.includes('Solar')) {
+      return 'https://images.unsplash.com/photo-1508873696983-2df5293cb32b?auto=format&fit=crop&w=400&q=80';
+    }
+    return 'https://images.unsplash.com/photo-1517649763962-0c623266ddc0?auto=format&fit=crop&w=400&q=80';
+  };
+
   const filtered = projects.filter((p) => {
     if (selectedCategory === 'ROAD' && !p.scheme.includes('Road') && !p.scheme.includes('PMGSY')) return false;
     if (selectedCategory === 'WATER' && !p.scheme.includes('Jal') && !p.scheme.includes('Water')) return false;
@@ -54,7 +67,7 @@ export default function CitizenHomePage() {
   return (
     <div className="space-y-6">
       {/* Citizen Welcome & Notification Card */}
-      <div className="bg-surface border border-border-hairline rounded-xl p-5 sm:p-6 shadow-subtle space-y-3">
+      <div className="bg-surface border border-border-hairline rounded-2xl p-5 sm:p-6 shadow-subtle space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="font-serif font-bold text-xl sm:text-2xl text-ink-primary">
@@ -67,20 +80,20 @@ export default function CitizenHomePage() {
 
           <Link
             href="/citizen/complaints"
-            className="px-4 py-2 rounded-lg bg-surface-sunken hover:bg-surface-sunken/80 border border-border-hairline text-ink-primary font-bold text-xs flex items-center gap-1.5 self-start sm:self-center shrink-0"
+            className="px-4 py-2.5 rounded-xl bg-surface-sunken hover:bg-surface border border-border-hairline text-ink-primary font-bold text-xs flex items-center gap-1.5 self-start sm:self-center shrink-0 shadow-subtle"
           >
-            <AlertCircle className="w-4 h-4 text-saffron-deep" />
+            <AlertCircle className="w-4 h-4 text-saffron-deep dark:text-saffron" />
             <span>Report a Concern (शिकायत दर्ज करें)</span>
           </Link>
         </div>
 
         {/* Latest Community Update */}
-        <div className="p-3 bg-india-green/10 border border-india-green/20 rounded-lg flex items-start gap-2.5 text-xs">
+        <div className="p-3.5 bg-india-green/10 border border-india-green/25 rounded-xl flex items-start gap-2.5 text-xs">
           <CheckCircle2 className="w-4 h-4 text-india-green shrink-0 mt-0.5" />
           <div className="flex-1">
             <span className="font-bold text-india-green block">Latest Update in Your Area:</span>
             <p className="text-ink-primary text-[11px] leading-snug">
-              Purandar Taluka Bitumen Road (Km 0 to 4.2) wearing coat is 85% completed.
+              Purandar Taluka Bitumen Road (Km 0 to 4.2) wearing coat is 82% completed. Verified by field quality engineer.
             </p>
           </div>
         </div>
@@ -96,47 +109,43 @@ export default function CitizenHomePage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search your village or road..."
-              className="w-full pl-9 pr-3 py-2 rounded-lg bg-surface border border-border-hairline text-xs sm:text-sm text-ink-primary placeholder-ink-muted focus:outline-none focus:border-saffron"
+              className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface border border-border-hairline text-xs sm:text-sm text-ink-primary placeholder-ink-muted focus:outline-none focus:border-saffron"
             />
           </div>
 
-          {/* List / Map View Switcher */}
+          {/* View Toggle */}
           <div className="flex items-center bg-surface-sunken border border-border-hairline rounded-lg p-0.5 self-end sm:self-auto">
             <button
               onClick={() => setViewMode('LIST')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${
-                viewMode === 'LIST'
-                  ? 'bg-surface text-ink-primary shadow-subtle'
-                  : 'text-ink-muted hover:text-ink-secondary'
+              className={`p-1.5 rounded flex items-center gap-1 text-xs font-semibold ${
+                viewMode === 'LIST' ? 'bg-surface text-ink-primary shadow-subtle' : 'text-ink-muted'
               }`}
             >
               <List className="w-3.5 h-3.5" />
-              <span>List View</span>
+              <span>List</span>
             </button>
             <button
               onClick={() => setViewMode('MAP')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${
-                viewMode === 'MAP'
-                  ? 'bg-surface text-ink-primary shadow-subtle'
-                  : 'text-ink-muted hover:text-ink-secondary'
+              className={`p-1.5 rounded flex items-center gap-1 text-xs font-semibold ${
+                viewMode === 'MAP' ? 'bg-surface text-ink-primary shadow-subtle' : 'text-ink-muted'
               }`}
             >
               <MapIcon className="w-3.5 h-3.5" />
-              <span>Map View</span>
+              <span>Map</span>
             </button>
           </div>
         </div>
 
-        {/* Category Filters */}
-        <div className="flex flex-wrap gap-2 text-xs">
+        {/* Categories */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
           {categories.map((c) => (
             <button
               key={c.key}
               onClick={() => setSelectedCategory(c.key)}
-              className={`px-3 py-1.5 rounded-full font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
                 selectedCategory === c.key
-                  ? 'bg-ink-primary text-surface'
-                  : 'bg-surface border border-border-hairline text-ink-secondary hover:bg-surface-sunken'
+                  ? 'bg-saffron text-ink-primary shadow-subtle'
+                  : 'bg-surface-sunken hover:bg-surface border border-border-hairline text-ink-secondary'
               }`}
             >
               {c.label}
@@ -153,13 +162,13 @@ export default function CitizenHomePage() {
             return (
               <div
                 key={p.id}
-                className="bg-surface border border-border-hairline rounded-xl p-4 sm:p-5 shadow-subtle hover:border-ink-muted transition-all flex flex-col sm:flex-row gap-4 items-start justify-between"
+                className="bg-surface border border-border-hairline rounded-2xl p-4 sm:p-5 shadow-subtle hover:border-ink-muted transition-all flex flex-col sm:flex-row gap-4 items-start justify-between"
               >
                 <div className="flex gap-4 items-start">
                   <img
-                    src="https://images.unsplash.com/photo-1517649763962-0c623266ddc0?auto=format&fit=crop&w=400&q=80"
+                    src={getProjectImg(p.scheme)}
                     alt={p.name}
-                    className="w-24 sm:w-28 h-24 rounded-lg object-cover bg-ink-primary shrink-0 border border-border-hairline"
+                    className="w-24 sm:w-28 h-24 rounded-xl object-cover bg-ink-primary shrink-0 border border-border-hairline"
                   />
 
                   <div className="space-y-1.5">
@@ -171,7 +180,7 @@ export default function CitizenHomePage() {
                         className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                           isCompleted
                             ? 'bg-india-green/15 text-india-green'
-                            : 'bg-saffron/15 text-saffron-deep'
+                            : 'bg-saffron/15 text-saffron-deep dark:text-saffron'
                         }`}
                       >
                         {isCompleted ? '✓ Completed (पूर्ण)' : '🔨 In Progress (प्रगति पर)'}
@@ -188,38 +197,38 @@ export default function CitizenHomePage() {
                     </p>
 
                     <div className="text-[11px] text-ink-muted pt-0.5">
-                      Sanctioned Budget: ₹{(p.budgetInr / 10000000).toFixed(2)} Cr
+                      Budget: <strong>₹{(p.budgetInr / 10000000).toFixed(2)} Cr</strong> • Target: {p.endDate}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 self-end sm:self-center shrink-0 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-border-hairline">
-                  <Link
-                    href={`/citizen/projects/${p.id}`}
-                    className="w-full sm:w-auto text-center px-4 py-2 rounded-lg bg-saffron text-ink-primary font-bold text-xs hover:bg-saffron-deep transition-colors shadow-subtle flex items-center justify-center gap-1"
-                  >
-                    <span>Track Progress (प्रगति देखें)</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
+                <Link
+                  href={`/citizen/projects/${p.id}`}
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-surface-sunken hover:bg-surface border border-border-hairline text-ink-primary font-bold text-xs flex items-center justify-center gap-1 self-stretch sm:self-center shrink-0 transition-colors shadow-subtle"
+                >
+                  <span>View Photos &amp; Progress</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </Link>
               </div>
             );
           })}
         </div>
       ) : (
-        /* Map View */
-        <div className="bg-surface border border-border-hairline rounded-xl p-6 shadow-subtle text-center space-y-3">
-          <p className="text-xs text-ink-secondary">
-            Showing project locations in your district. Click any marker to view photos.
-          </p>
-          <div className="aspect-[16/9] bg-surface-sunken rounded-lg border border-border-hairline flex items-center justify-center">
-            <span className="text-xs font-semibold text-ink-muted">
-              Interactive Map with {filtered.length} Local Work Sites
-            </span>
+        /* Simple Clean Citizen Map View */
+        <div className="bg-surface border border-border-hairline rounded-2xl p-4 shadow-subtle">
+          <div className="aspect-[16/9] bg-surface-sunken rounded-xl flex items-center justify-center relative overflow-hidden border border-border-hairline">
+            <div className="text-center space-y-2 p-6">
+              <MapIcon className="w-8 h-8 text-saffron-deep dark:text-saffron mx-auto" />
+              <h3 className="font-serif font-bold text-base text-ink-primary">
+                Village Works Map (गाँव के विकास कार्य)
+              </h3>
+              <p className="text-xs text-ink-secondary max-w-sm">
+                Showing {filtered.length} sanctioned public works in your block.
+              </p>
+            </div>
           </div>
         </div>
       )}
     </div>
   );
 }
-

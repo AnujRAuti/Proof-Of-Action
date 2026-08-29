@@ -20,6 +20,10 @@ import {
   Building2,
   FileCheck,
   AlertTriangle,
+  Fingerprint,
+  Layers,
+  Sparkles,
+  ShieldAlert,
 } from 'lucide-react';
 
 function SupervisorUploadWizardContent() {
@@ -30,7 +34,7 @@ function SupervisorUploadWizardContent() {
   const { t, formatDate } = useI18n();
   const { projects, addToast } = useApp();
 
-  const [step, setStep] = useState<number>(1); // 1 = Confirm Site, 2 = Photo/Video, 3 = Confirm Location, 4 = Spoken Note, 5 = Submit
+  const [step, setStep] = useState<number>(1); // 1 = Confirm Site, 2 = Photo/Video, 3 = Multi-Signal Check (Location + Duplicate), 4 = Voice Note, 5 = Submit
   const [selectedProjectId, setSelectedProjectId] = useState<string>(initialProjectId || projects[0]?.id);
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
@@ -38,6 +42,10 @@ function SupervisorUploadWizardContent() {
   const [isRecording, setIsRecording] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // Simulation controls for testing duplicate detection & location mismatch
+  const [simulateDuplicate, setSimulateDuplicate] = useState(false);
+  const [simulateLocationMismatch, setSimulateLocationMismatch] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -148,7 +156,7 @@ function SupervisorUploadWizardContent() {
 
       {/* STEP 1: CONFIRM WORK SITE */}
       {step === 1 && !isSubmitted && (
-        <div className="bg-surface border-2 border-border-hairline rounded-xl p-5 shadow-subtle space-y-4 animate-page-enter">
+        <div className="bg-surface border-2 border-border-hairline rounded-2xl p-5 sm:p-6 shadow-subtle space-y-4 animate-page-enter">
           <div>
             <span className="text-[10px] uppercase font-bold text-ink-muted block">
               Step 1: Confirm Site (साइट पुष्टि करें)
@@ -165,7 +173,7 @@ function SupervisorUploadWizardContent() {
                 <div
                   key={p.id}
                   onClick={() => setSelectedProjectId(p.id)}
-                  className={`p-3.5 rounded-lg border-2 cursor-pointer transition-all ${
+                  className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
                     isSelected
                       ? 'bg-surface border-saffron shadow-subtle ring-1 ring-saffron'
                       : 'bg-surface-sunken border-border-hairline hover:bg-surface'
@@ -191,7 +199,7 @@ function SupervisorUploadWizardContent() {
 
           <button
             onClick={() => setStep(2)}
-            className="w-full py-3.5 rounded-lg bg-saffron text-ink-primary font-bold text-sm hover:bg-saffron-deep transition-colors flex items-center justify-center gap-2 shadow-subtle"
+            className="w-full py-3.5 rounded-xl bg-saffron text-ink-primary font-bold text-sm hover:bg-saffron-deep transition-colors flex items-center justify-center gap-2 shadow-subtle"
           >
             <span>Next: Take Photo (आगे बढ़ें)</span>
             <ArrowRight className="w-4 h-4" />
@@ -201,7 +209,7 @@ function SupervisorUploadWizardContent() {
 
       {/* STEP 2: CAPTURE PHOTO */}
       {step === 2 && !isSubmitted && (
-        <div className="bg-surface border-2 border-border-hairline rounded-xl p-5 shadow-subtle space-y-4 animate-page-enter">
+        <div className="bg-surface border-2 border-border-hairline rounded-2xl p-5 sm:p-6 shadow-subtle space-y-4 animate-page-enter">
           <div className="space-y-1">
             <span className="text-[10px] uppercase font-bold text-ink-muted block">
               Step 2: Point &amp; Snap (फोटो खींचें)
@@ -214,19 +222,19 @@ function SupervisorUploadWizardContent() {
             </p>
           </div>
 
-          <div className="bg-ink-primary rounded-xl aspect-[4/3] relative flex items-center justify-center text-surface border-2 border-border-hairline overflow-hidden select-none">
+          <div className="bg-ink-primary rounded-2xl aspect-[4/3] relative flex items-center justify-center text-surface border-2 border-border-hairline overflow-hidden select-none">
             <div className="text-center p-6 space-y-2">
               <Camera className="w-10 h-10 text-surface/80 mx-auto" />
-              <span className="text-xs font-bold block">Live Camera Shutter</span>
+              <span className="text-xs font-bold block">Live Camera Viewport</span>
               <span className="text-[11px] text-surface/70 block">
-                Tap the big yellow button below to snap photo
+                Tap the circular button below to take photo or choose from gallery
               </span>
             </div>
 
             <div className="absolute bottom-3 inset-x-3 flex items-center justify-between">
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="px-3 py-2 rounded-lg bg-surface/20 text-surface text-xs font-bold flex items-center gap-1.5"
+                className="px-3 py-2 rounded-lg bg-surface/20 text-surface text-xs font-bold flex items-center gap-1.5 backdrop-blur-sm"
               >
                 <Upload className="w-4 h-4" />
                 <span>Gallery</span>
@@ -250,7 +258,7 @@ function SupervisorUploadWizardContent() {
 
               <button
                 onClick={() => setStep(1)}
-                className="px-3 py-2 rounded-lg bg-surface/20 text-surface text-xs font-semibold"
+                className="px-3 py-2 rounded-lg bg-surface/20 text-surface text-xs font-semibold backdrop-blur-sm"
               >
                 Back
               </button>
@@ -259,186 +267,342 @@ function SupervisorUploadWizardContent() {
         </div>
       )}
 
-      {/* STEP 3: CONFIRM GPS LOCATION */}
+      {/* STEP 3: PRE-SUBMISSION MULTI-SIGNAL CHECK (Section 9 & 10) */}
       {step === 3 && !isSubmitted && (
-        <div className="bg-surface border-2 border-border-hairline rounded-xl p-5 shadow-subtle space-y-4 animate-page-enter">
+        <div className="bg-surface border-2 border-border-hairline rounded-2xl p-5 sm:p-6 shadow-subtle space-y-5 animate-page-enter">
           <div className="space-y-1">
             <span className="text-[10px] uppercase font-bold text-ink-muted block">
-              Step 3: Location Lock (लोकेशन जांचें)
+              Step 3: Multi-Signal Pre-Check (लोकेशन व डुप्लीकेट जांच)
             </span>
             <h2 className="font-serif font-bold text-base sm:text-lg text-ink-primary">
-              Location Confirmed ✓ (स्थान सत्यापित)
+              Real-Time Evidence Verification
             </h2>
+            <p className="text-xs text-ink-secondary">
+              The platform verifies GPS bounds and checks the image fingerprint against earlier records.
+            </p>
           </div>
 
-          <div className="p-4 bg-india-green/10 border border-india-green/30 rounded-xl space-y-3">
-            <div className="flex items-center gap-2 text-india-green font-bold text-sm">
-              <CheckCircle2 className="w-5 h-5" />
-              <span>You are at the verified work site (28m from center)</span>
+          {/* Captured Preview */}
+          <div className="relative rounded-xl overflow-hidden aspect-[16/9] bg-ink-primary border border-border-hairline">
+            <img
+              src={
+                capturedPhoto ||
+                'https://images.unsplash.com/photo-1517649763962-0c623266ddc0?auto=format&fit=crop&w=800&q=80'
+              }
+              alt="Captured evidence preview"
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute bottom-2 left-2 px-2.5 py-1 rounded bg-ink-primary/80 backdrop-blur-sm text-surface text-[10px] font-mono">
+              Fingerprint: 9f83...c491 • pHash: 8f3c7a19e0b4
+            </div>
+          </div>
+
+          {/* Signal 1: Location Check (Section 10) */}
+          <div
+            className={`p-4 rounded-xl border-2 space-y-2.5 transition-colors ${
+              simulateLocationMismatch
+                ? 'bg-risk-high/10 border-risk-high text-ink-primary'
+                : 'bg-india-green/10 border-india-green text-ink-primary'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 font-bold text-xs">
+                {simulateLocationMismatch ? (
+                  <>
+                    <AlertTriangle className="w-4 h-4 text-risk-high" />
+                    <span className="text-risk-high">LOCATION MISMATCH DETECTED</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-india-green" />
+                    <span className="text-india-green">LOCATION VERIFIED (स्थान सत्यापित)</span>
+                  </>
+                )}
+              </div>
+              <span className="text-[10px] font-mono text-ink-muted">Geofence Check</span>
             </div>
 
-            <div className="p-3 bg-surface rounded-lg border border-border-hairline space-y-1 text-xs font-mono">
+            <p className="text-xs text-ink-secondary leading-snug">
+              {simulateLocationMismatch
+                ? 'This evidence was captured 1.8km outside the approved project area. Reviewers will flag this as an out-of-zone submission.'
+                : `Evidence is within the approved ${activeProject.geofenceRadiusMeters}m project boundary (28m from site centroid).`}
+            </p>
+
+            <div className="p-2.5 bg-surface rounded-lg border border-border-hairline space-y-1 text-[11px] font-mono">
               <div className="flex justify-between">
-                <span className="text-ink-muted">District &amp; Block:</span>
-                <span className="text-ink-primary font-bold">{activeProject.block}, {activeProject.district}</span>
+                <span className="text-ink-muted">Approved Site Center:</span>
+                <span className="text-ink-primary">{activeProject.centroid.lat}° N, {activeProject.centroid.lng}° E</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-ink-muted">Accuracy:</span>
-                <span className="text-india-green font-bold">±3.5 metres (GPS Locked)</span>
+                <span className="text-ink-muted">Captured Coordinates:</span>
+                <span className={simulateLocationMismatch ? 'text-risk-high font-bold' : 'text-india-green font-bold'}>
+                  {simulateLocationMismatch ? '18.5321° N, 73.9123° E (1,840m off)' : '18.2814° N, 74.0156° E (28m off)'}
+                </span>
               </div>
             </div>
           </div>
 
-          <div className="flex gap-2">
+          {/* Signal 2: Image Duplicate Detection (Section 9) */}
+          <div
+            className={`p-4 rounded-xl border-2 space-y-2.5 transition-colors ${
+              simulateDuplicate
+                ? 'bg-risk-critical/10 border-risk-critical text-ink-primary'
+                : 'bg-india-green/10 border-india-green text-ink-primary'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 font-bold text-xs">
+                {simulateDuplicate ? (
+                  <>
+                    <ShieldAlert className="w-4 h-4 text-risk-critical" />
+                    <span className="text-risk-critical">DUPLICATE IMAGE DETECTED (डुप्लीकेट फोटो)</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-india-green" />
+                    <span className="text-india-green">NEW ORIGINAL IMAGE (मौलिक फोटो)</span>
+                  </>
+                )}
+              </div>
+              <span className="text-[10px] font-mono text-ink-muted">pHash Corpus Match</span>
+            </div>
+
+            {simulateDuplicate ? (
+              <div className="space-y-2 text-xs">
+                <p className="text-ink-secondary leading-snug">
+                  96.8% visual similarity with an existing submission in the national evidence repository:
+                </p>
+                <div className="p-3 bg-surface rounded-lg border border-risk-critical/30 space-y-1 text-[11px]">
+                  <div className="flex justify-between">
+                    <span className="text-ink-muted">Matched Evidence:</span>
+                    <strong className="font-mono text-ink-primary">#EVD-2025-01982</strong>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-ink-muted">Project:</span>
+                    <span className="text-ink-primary">Road Rehabilitation – Pune</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-ink-muted">Previous Submission:</span>
+                    <span className="font-mono text-ink-secondary">14 Aug 2025</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-ink-muted">Status:</span>
+                    <span className="font-bold text-india-green">Already Verified</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-ink-secondary leading-snug">
+                No matching visual hash found across 38,917 public-works evidence records. This is a unique, original capture.
+              </p>
+            )}
+          </div>
+
+          {/* Test Toggles for Reviewer/Evaluation Demo */}
+          <div className="p-3 rounded-xl bg-surface-sunken border border-border-hairline space-y-2 text-xs">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-ink-muted block">
+              Demo Test Controls (सिमुलेशन परीक्षण):
+            </span>
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 cursor-pointer select-none text-[11px]">
+                <input
+                  type="checkbox"
+                  checked={simulateLocationMismatch}
+                  onChange={(e) => setSimulateLocationMismatch(e.target.checked)}
+                  className="w-3.5 h-3.5 accent-risk-high"
+                />
+                <span className="text-ink-secondary">Simulate Out-of-Zone GPS</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer select-none text-[11px]">
+                <input
+                  type="checkbox"
+                  checked={simulateDuplicate}
+                  onChange={(e) => setSimulateDuplicate(e.target.checked)}
+                  className="w-3.5 h-3.5 accent-risk-critical"
+                />
+                <span className="text-ink-secondary">Simulate Recycled Duplicate Photo</span>
+              </label>
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-1">
             <button
               onClick={() => setStep(2)}
-              className="px-4 py-3 rounded-lg bg-surface border border-border-hairline text-xs font-semibold text-ink-secondary"
+              className="px-4 py-3 rounded-xl bg-surface border border-border-hairline text-xs font-semibold text-ink-secondary"
             >
               Retake Photo
             </button>
             <button
               onClick={() => setStep(4)}
-              className="flex-1 py-3 rounded-lg bg-saffron text-ink-primary font-bold text-xs hover:bg-saffron-deep transition-colors flex items-center justify-center gap-2"
+              className="flex-1 py-3 rounded-xl bg-saffron text-ink-primary font-bold text-xs hover:bg-saffron-deep transition-colors flex items-center justify-center gap-2 shadow-subtle"
             >
-              <span>Confirm Location (स्थान सही है)</span>
+              <span>Continue: Add Site Note (आगे बढ़ें)</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>
       )}
 
-      {/* STEP 4: OPTIONAL VOICE NOTE */}
+      {/* STEP 4: SPOKEN NOTE */}
       {step === 4 && !isSubmitted && (
-        <div className="bg-surface border-2 border-border-hairline rounded-xl p-5 shadow-subtle space-y-4 animate-page-enter">
+        <div className="bg-surface border-2 border-border-hairline rounded-2xl p-5 sm:p-6 shadow-subtle space-y-4 animate-page-enter">
           <div className="space-y-1">
             <span className="text-[10px] uppercase font-bold text-ink-muted block">
-              Step 4: Observation Note (टिप्पणी)
+              Step 4: Site Note (साइट टिप्पणी)
             </span>
             <h2 className="font-serif font-bold text-base sm:text-lg text-ink-primary">
-              Add a quick note or speak into the mic
+              Speak or type what was completed today
             </h2>
+            <p className="text-xs text-ink-secondary">
+              बोलकर या लिखकर बताएं कि आज कौन सा कार्य पूरा किया गया है।
+            </p>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={handleToggleVoice}
-                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${
-                  isRecording
-                    ? 'bg-risk-critical text-surface animate-pulse'
-                    : 'bg-saffron/20 text-saffron-deep'
-                }`}
-              >
-                <Mic className="w-3.5 h-3.5" />
-                <span>{isRecording ? 'सुन रहे हैं... (Listening)' : 'बोलकर लिखें (Voice Note)'}</span>
-              </button>
-            </div>
-
+          <div className="space-y-3">
             <textarea
-              rows={3}
               value={voiceNote}
               onChange={(e) => setVoiceNote(e.target.value)}
-              placeholder="e.g. कार्य संतोषजनक है, डामरीकरण पूर्ण हुआ..."
-              className="w-full px-3 py-2 rounded-lg bg-surface-sunken border border-border-hairline text-xs text-ink-primary focus:outline-none focus:border-saffron"
+              placeholder="e.g. Completed 40mm asphalt wearing coat with curb drainage..."
+              rows={3}
+              className="w-full p-3 rounded-xl bg-surface-sunken border border-border-hairline text-xs text-ink-primary placeholder-ink-muted focus:outline-none focus:border-saffron"
             />
+
+            <button
+              onClick={handleToggleVoice}
+              className={`w-full py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border transition-all ${
+                isRecording
+                  ? 'bg-risk-high text-surface border-risk-high animate-pulse'
+                  : 'bg-surface hover:bg-surface-sunken border-border-hairline text-ink-primary'
+              }`}
+            >
+              <Mic className={`w-4 h-4 ${isRecording ? 'text-surface' : 'text-saffron-deep'}`} />
+              <span>{isRecording ? 'Listening... Speak in Hindi/Marathi/English' : 'Tap to Speak Note (बोलकर दर्ज करें)'}</span>
+            </button>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 pt-2">
             <button
               onClick={() => setStep(3)}
-              className="px-4 py-3 rounded-lg bg-surface border border-border-hairline text-xs font-semibold text-ink-secondary"
+              className="px-4 py-3 rounded-xl bg-surface border border-border-hairline text-xs font-semibold text-ink-secondary"
             >
               Back
             </button>
             <button
               onClick={() => setStep(5)}
-              className="flex-1 py-3 rounded-lg bg-saffron text-ink-primary font-bold text-xs hover:bg-saffron-deep transition-colors flex items-center justify-center gap-2"
+              className="flex-1 py-3 rounded-xl bg-saffron text-ink-primary font-bold text-xs hover:bg-saffron-deep transition-colors flex items-center justify-center gap-2 shadow-subtle"
             >
-              <span>Next: Review &amp; Submit</span>
+              <span>Review Summary (सारांश देखें)</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>
       )}
 
-      {/* STEP 5: REVIEW & FINAL SUBMIT */}
+      {/* STEP 5: SUBMIT SUMMARY */}
       {step === 5 && !isSubmitted && (
-        <div className="bg-surface border-2 border-border-hairline rounded-xl p-5 shadow-subtle space-y-4 animate-page-enter">
+        <div className="bg-surface border-2 border-border-hairline rounded-2xl p-5 sm:p-6 shadow-subtle space-y-5 animate-page-enter">
           <div className="space-y-1">
             <span className="text-[10px] uppercase font-bold text-ink-muted block">
-              Step 5: Review &amp; Submit (अंतिम समीक्षा)
+              Step 5: Final Review &amp; Submit (साक्ष्य जमा करें)
             </span>
             <h2 className="font-serif font-bold text-base sm:text-lg text-ink-primary">
               Ready to submit site evidence
             </h2>
           </div>
 
-          {/* Photo Summary */}
-          <div className="aspect-[16/10] bg-ink-primary rounded-lg overflow-hidden relative border border-border-hairline">
-            <img src={capturedPhoto || ''} alt="Evidence Preview" className="w-full h-full object-cover" />
-            <div className="absolute bottom-0 inset-x-0 bg-ink-primary/80 backdrop-blur-xs p-2 text-surface text-[10px] font-mono flex justify-between">
-              <span>📍 {activeProject.block}, {activeProject.district}</span>
-              <span>{formatDate(new Date(), { hour: '2-digit', minute: '2-digit' })}</span>
+          <div className="p-4 bg-surface-sunken rounded-xl border border-border-hairline space-y-3 text-xs">
+            <div className="flex justify-between">
+              <span className="text-ink-muted">Target Project:</span>
+              <span className="font-bold text-ink-primary">{activeProject.name}</span>
             </div>
+            <div className="flex justify-between">
+              <span className="text-ink-muted">Project ID:</span>
+              <span className="font-mono font-bold text-ink-primary">{activeProject.id}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-ink-muted">Geofence Status:</span>
+              <span className="font-bold text-india-green">28m from site center (OK)</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-ink-muted">Duplicate Check:</span>
+              <span className="font-bold text-india-green">0 Matches Found (Clean)</span>
+            </div>
+            {voiceNote && (
+              <div className="pt-2 border-t border-border-hairline">
+                <span className="text-ink-muted block text-[11px]">Officer Site Note:</span>
+                <p className="text-ink-primary mt-0.5 italic text-xs">&ldquo;{voiceNote}&rdquo;</p>
+              </div>
+            )}
           </div>
 
-          {voiceNote && (
-            <div className="p-3 bg-surface-sunken rounded-lg border border-border-hairline text-xs">
-              <span className="text-ink-muted block text-[10px]">Supervisor Note:</span>
-              <p className="text-ink-primary italic mt-0.5">&ldquo;{voiceNote}&rdquo;</p>
-            </div>
-          )}
-
-          <button
-            onClick={handleFinalSubmit}
-            className="w-full py-4 rounded-xl bg-india-green text-surface font-bold text-base shadow-dropdown hover:opacity-95 transition-all flex items-center justify-center gap-2"
-          >
-            <CheckCircle2 className="w-5 h-5" />
-            <span>
-              {isOffline
-                ? 'Save to Offline Queue (फोन में सुरक्षित करें)'
-                : 'Submit Evidence Now (साक्ष्य भेजें)'}
-            </span>
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setStep(4)}
+              className="px-4 py-3.5 rounded-xl bg-surface border border-border-hairline text-xs font-semibold text-ink-secondary"
+            >
+              Back
+            </button>
+            <button
+              onClick={handleFinalSubmit}
+              className="flex-1 py-3.5 rounded-xl bg-india-green text-surface font-bold text-sm hover:opacity-90 transition-opacity shadow-subtle flex items-center justify-center gap-2"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Submit Evidence (साक्ष्य जमा करें)</span>
+            </button>
+          </div>
         </div>
       )}
 
       {/* SUBMISSION CONFIRMATION */}
       {isSubmitted && (
-        <div className="bg-surface border-2 border-india-green/40 rounded-xl p-6 shadow-dropdown text-center space-y-4 animate-page-enter">
-          <div className="w-16 h-16 rounded-full bg-india-green/15 text-india-green flex items-center justify-center mx-auto">
-            <CheckCircle2 className="w-10 h-10" />
+        <div className="bg-surface border-2 border-india-green/40 rounded-2xl p-6 sm:p-8 shadow-subtle text-center space-y-5 animate-page-enter">
+          <div className="w-16 h-16 rounded-full bg-india-green/20 text-india-green flex items-center justify-center mx-auto">
+            <CheckCircle2 className="w-8 h-8" />
           </div>
 
           <div className="space-y-1">
-            <h3 className="font-serif font-bold text-lg text-ink-primary">
-              साक्ष्य सफलतापूर्वक दर्ज हुआ! (Upload Successful)
-            </h3>
-            <p className="text-xs text-ink-secondary">
-              {isOffline
-                ? 'फोटो फोन में सुरक्षित है और नेटवर्क चालू होते ही स्वतः अपलोड हो जाएगी।'
-                : 'Evidence has been transmitted to the Reviewer Hub with verified GPS location.'}
+            <h2 className="font-serif font-bold text-xl sm:text-2xl text-ink-primary">
+              Evidence Successfully Submitted!
+            </h2>
+            <p className="text-xs sm:text-sm text-ink-secondary">
+              साक्ष्य सफलतापूर्वक जमा किया गया। रिकॉर्ड संख्या #EVD-2026-9901
             </p>
           </div>
 
-          <div className="pt-2 flex gap-2">
+          <div className="p-4 bg-surface-sunken rounded-xl border border-border-hairline text-xs font-mono space-y-1 text-left">
+            <div className="flex justify-between">
+              <span className="text-ink-muted">Submission ID:</span>
+              <span className="font-bold text-ink-primary">EVD-2026-9901</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-ink-muted">Integrity Score:</span>
+              <span className="font-bold text-india-green">96 / 100 (Clean)</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-ink-muted">Review Queue Status:</span>
+              <span className="text-ink-primary font-semibold">Stage-3 Fast-Track</span>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2 pt-2">
             <button
               onClick={() => {
+                setStep(1);
+                setIsSubmitted(false);
                 setCapturedPhoto(null);
                 setVoiceNote('');
-                setIsSubmitted(false);
-                setStep(1);
               }}
-              className="flex-1 py-3 rounded-lg bg-ink-primary text-surface font-bold text-xs hover:opacity-90"
+              className="flex-1 py-3 rounded-xl bg-surface-sunken hover:bg-surface border border-border-hairline text-xs font-bold text-ink-primary"
             >
-              Upload Next Site (अगला कार्य)
+              Upload Another Photo
             </button>
             <Link
-              href="/supervisor/uploads"
-              className="px-4 py-3 rounded-lg bg-surface border border-border-hairline text-ink-primary font-semibold text-xs hover:bg-surface-sunken flex items-center justify-center"
+              href="/supervisor"
+              className="flex-1 py-3 rounded-xl bg-india-green text-surface font-bold text-xs hover:opacity-90 flex items-center justify-center gap-1.5"
             >
-              My Uploads (स्थिति)
+              <span>Back to Daily Tasks</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </div>
@@ -447,11 +611,10 @@ function SupervisorUploadWizardContent() {
   );
 }
 
-export default function SupervisorUploadWizardPage() {
+export default function SupervisorUploadWizard() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-xs text-ink-muted">Loading field upload...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-xs text-ink-muted">Loading upload form...</div>}>
       <SupervisorUploadWizardContent />
     </Suspense>
   );
 }
-

@@ -181,7 +181,7 @@ export default function CitizenProjectDetailPage({ params }: { params: Promise<{
           <div className="space-y-1.5">
             <div className="aspect-[4/3] bg-ink-primary rounded-lg overflow-hidden relative border border-border-hairline">
               <img
-                src="https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=600&q=80"
+                src="https://images.unsplash.com/photo-1590486803833-1c5dc8ddd4c8?auto=format&fit=crop&w=600&q=80"
                 alt="Before Construction"
                 className="w-full h-full object-cover"
               />
