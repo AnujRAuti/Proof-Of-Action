@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useI18n } from '@/lib/i18n/context';
 import { useTheme } from '@/lib/theme/context';
-import { useApp, UserRole } from '@/lib/store/app-context';
+import { useApp } from '@/lib/store/app-context';
 import { SUPPORTED_LANGUAGES } from '@/lib/i18n/languages';
 import { AbstractMark } from '../ui/abstract-mark';
 import {
@@ -13,36 +13,25 @@ import {
   Laptop,
   Globe,
   Search,
-  Keyboard,
-  ShieldCheck,
-  UserCheck,
   ChevronDown,
   Check,
-  Camera,
-  Users,
-  Building2,
   LogIn,
 } from 'lucide-react';
 
 export function DpiHeader() {
   const { t, language, setLanguage, currentLanguage } = useI18n();
   const { theme, setTheme } = useTheme();
-  const { role, loginUser, currentUser, setIsCommandPaletteOpen, setIsShortcutsModalOpen } = useApp();
+  const { setIsCommandPaletteOpen } = useApp();
 
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [langQuery, setLangQuery] = useState('');
-  const [isRoleOpen, setIsRoleOpen] = useState(false);
 
   const langRef = useRef<HTMLDivElement>(null);
-  const roleRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (langRef.current && !langRef.current.contains(e.target as Node)) {
         setIsLangOpen(false);
-      }
-      if (roleRef.current && !roleRef.current.contains(e.target as Node)) {
-        setIsRoleOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -55,12 +44,6 @@ export function DpiHeader() {
       l.nativeName.toLowerCase().includes(langQuery.toLowerCase()) ||
       l.script.toLowerCase().includes(langQuery.toLowerCase())
   );
-
-  const roleConfigs: { key: UserRole; label: string; desc: string; href: string }[] = [
-    { key: 'CITIZEN', label: 'Citizen (नागरिक)', desc: 'Track local projects & voice concerns', href: '/citizen' },
-    { key: 'SUPERVISOR', label: 'Field Supervisor (सुपरवाइजर)', desc: 'Guided outdoor 3-step evidence upload', href: '/supervisor' },
-    { key: 'REVIEWER', label: 'Government Reviewer (समीक्षक)', desc: '7-signal fusion, review queue & audit', href: '/reviewer' },
-  ];
 
   return (
     <header className="sticky top-0 z-40 bg-surface border-b border-border-hairline shadow-subtle">
@@ -88,46 +71,6 @@ export function DpiHeader() {
                 {t('dept_label', 'Government of India • Digital Public Infrastructure')}
               </span>
             </div>
-          </Link>
-        </div>
-
-        {/* 3 Direct Role Quick Switcher Pills for Jury / Evaluation */}
-        <div className="hidden md:flex items-center gap-1 bg-surface-sunken p-1 rounded-lg border border-border-hairline text-xs font-semibold">
-          <Link
-            href="/citizen"
-            onClick={() => loginUser('CITIZEN')}
-            className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 ${
-              role === 'CITIZEN'
-                ? 'bg-surface text-saffron-deep dark:text-saffron shadow-subtle font-bold'
-                : 'text-ink-secondary hover:text-ink-primary'
-            }`}
-          >
-            <Users className="w-3.5 h-3.5" />
-            <span>Citizen</span>
-          </Link>
-          <Link
-            href="/supervisor"
-            onClick={() => loginUser('SUPERVISOR')}
-            className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 ${
-              role === 'SUPERVISOR'
-                ? 'bg-surface text-india-green shadow-subtle font-bold'
-                : 'text-ink-secondary hover:text-ink-primary'
-            }`}
-          >
-            <Camera className="w-3.5 h-3.5" />
-            <span>Supervisor</span>
-          </Link>
-          <Link
-            href="/reviewer"
-            onClick={() => loginUser('REVIEWER')}
-            className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 ${
-              role === 'REVIEWER' || role === 'PROGRAM_ADMIN' || role === 'AUDITOR'
-                ? 'bg-surface text-navy dark:text-[#7FA8D9] shadow-subtle font-bold'
-                : 'text-ink-secondary hover:text-ink-primary'
-            }`}
-          >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Reviewer</span>
           </Link>
         </div>
 

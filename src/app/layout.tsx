@@ -4,7 +4,6 @@ import { ThemeProvider } from '@/lib/theme/context';
 import { I18nProvider } from '@/lib/i18n/context';
 import { AppProvider } from '@/lib/store/app-context';
 import { DpiHeader } from '@/components/layout/dpi-header';
-import { SidebarNav } from '@/components/layout/sidebar-nav';
 import { CommandPalette } from '@/components/ui/command-palette';
 import { KeyboardShortcutsModal } from '@/components/ui/keyboard-shortcuts-modal';
 import { ToastContainer } from '@/components/ui/toast';
@@ -57,16 +56,13 @@ export default function RootLayout({
         <ThemeProvider>
           <I18nProvider>
             <AppProvider>
-              {/* Top GIGW 3.0 Header */}
+              {/* Top GIGW 3.0 Header — shown on public pages; role layouts may render their own header */}
               <DpiHeader />
 
-              {/* Main App Body with Sidebar and Main Content Area */}
-              <div className="flex flex-1 min-h-[calc(100vh-3.5rem)]">
-                <SidebarNav />
-                <main className="flex-1 overflow-x-hidden min-w-0 bg-canvas animate-page-enter">
-                  {children}
-                </main>
-              </div>
+              {/* Main Content Area — each role layout provides its own shell */}
+              <main className="flex-1 flex flex-col min-h-[calc(100vh-3.5rem)]">
+                {children}
+              </main>
 
               {/* Global Overlays */}
               <CommandPalette />
@@ -79,4 +75,3 @@ export default function RootLayout({
     </html>
   );
 }
-
