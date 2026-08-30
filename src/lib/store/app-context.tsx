@@ -98,6 +98,15 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+const STORAGE_KEYS = {
+  user: 'eiil_current_user',
+  evidence: 'eiil_evidence_list',
+  auditEvents: 'eiil_audit_events',
+  complaints: 'eiil_complaints',
+  supervisorTasks: 'eiil_supervisor_tasks',
+  density: 'eiil_table_density',
+} as const;
+
 // Initial Mock Datasets for 3 Roles
 const INITIAL_CITIZEN_COMPLAINTS: CitizenComplaint[] = [
   {
@@ -175,15 +184,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   // Role & User Account State
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>({
-    id: 'USR-REVIEWER-01',
-    name: 'Rajesh Kulkarni',
-    role: 'REVIEWER',
-    email: 'r.kulkarni@pwd.maharashtra.gov.in',
-    district: 'Pune',
-    state: 'Maharashtra',
-    department: 'Public Works Department (PWD)',
-  });
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [role, setRoleState] = useState<UserRole>('REVIEWER');
 
   const [evidenceList, setEvidenceList] = useState<EvidenceItem[]>(MOCK_EVIDENCE_ITEMS);
@@ -197,17 +198,47 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
+  const [hasHydrated, setHasHydrated] = useState(false);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('eiil_current_user');
-    if (savedUser) {
+    const readStoredValue = <T,>(key: string): T | null => {
       try {
-        const parsed = JSON.parse(savedUser);
-        setCurrentUser(parsed);
-        setRoleState(parsed.role);
-      } catch {}
+        const saved = localStorage.getItem(key);
+        return saved ? (JSON.parse(saved) as T) : null;
+      } catch {
+        return null;
+      }
+    };
+
+    const savedUser = readStoredValue<UserProfile>(STORAGE_KEYS.user);
+    const savedEvidence = readStoredValue<EvidenceItem[]>(STORAGE_KEYS.evidence);
+    const savedAuditEvents = readStoredValue<AuditEvent[]>(STORAGE_KEYS.auditEvents);
+    const savedComplaints = readStoredValue<CitizenComplaint[]>(STORAGE_KEYS.complaints);
+    const savedSupervisorTasks = readStoredValue<SupervisorTask[]>(STORAGE_KEYS.supervisorTasks);
+    const savedDensity = localStorage.getItem(STORAGE_KEYS.density) as TableDensity | null;
+
+    if (savedUser) {
+      setCurrentUser(savedUser);
+      setRoleState(savedUser.role);
     }
+    if (savedEvidence) setEvidenceList(savedEvidence);
+    if (savedAuditEvents) setAuditEvents(savedAuditEvents);
+    if (savedComplaints) setComplaints(savedComplaints);
+    if (savedSupervisorTasks) setSupervisorTasks(savedSupervisorTasks);
+    if (savedDensity === 'comfortable' || savedDensity === 'compact') setDensityState(savedDensity);
+    setHasHydrated(true);
   }, []);
+
+  // Prototype persistence keeps a presenter from losing a review decision when
+  // the browser refreshes. This remains a client-side demo store, not a source
+  // of truth for a production deployment.
+  useEffect(() => {
+    if (!hasHydrated) return;
+    localStorage.setItem(STORAGE_KEYS.evidence, JSON.stringify(evidenceList));
+    localStorage.setItem(STORAGE_KEYS.auditEvents, JSON.stringify(auditEvents));
+    localStorage.setItem(STORAGE_KEYS.complaints, JSON.stringify(complaints));
+    localStorage.setItem(STORAGE_KEYS.supervisorTasks, JSON.stringify(supervisorTasks));
+  }, [auditEvents, complaints, evidenceList, hasHydrated, supervisorTasks]);
 
   const loginUser = (newRole: UserRole, customUser?: Partial<UserProfile>) => {
     let mockProfile: UserProfile;
@@ -251,7 +282,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     setCurrentUser(mockProfile);
     setRoleState(newRole);
-    localStorage.setItem('eiil_current_user', JSON.stringify(mockProfile));
+    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(mockProfile));
 
     addToast({
       title: `Welcome, ${mockProfile.name}`,
@@ -271,7 +302,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const logoutUser = () => {
     setCurrentUser(null);
-    localStorage.removeItem('eiil_current_user');
+    localStorage.removeItem(STORAGE_KEYS.user);
     router.push('/');
     addToast({
       title: 'Logged Out',
@@ -308,7 +339,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const setDensity = (newDensity: TableDensity) => {
     setDensityState(newDensity);
-    localStorage.setItem('eiil_table_density', newDensity);
+    localStorage.setItem(STORAGE_KEYS.density, newDensity);
+  };
+
+  const addAuditEvent = (
+    item: EvidenceItem,
+    action: AuditEvent['action'],
+    newState: EvidenceItem['auditStatus'],
+    reason: string
+  ) => {
+    const newAuditEvent: AuditEvent = {
+      id: `AUD-${Date.now().toString().slice(-6)}-${Math.random().toString(36).slice(2, 5)}`,
+      evidenceId: item.id,
+      projectId: item.projectId,
+      actorName: currentUser?.name || 'Audit Officer',
+      actorRole: role,
+      action,
+      previousState: item.auditStatus,
+      newState,
+      reason,
+      sha256Hash: item.sha256,
+      timestamp: new Date().toISOString(),
+    };
+    setAuditEvents((prev) => [newAuditEvent, ...prev]);
   };
 
   const addToast = (toast: Omit<ToastMessage, 'id' | 'timestamp'>) => {
@@ -351,20 +404,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       prev.map((e) => (e.id === id ? { ...e, auditStatus: 'APPROVED', reviewer: { ...e.reviewer, assignedTo: 'Current Reviewer', note, decisionDate: new Date().toISOString() } } : e))
     );
 
-    const newAuditEvent: AuditEvent = {
-      id: `AUD-${Date.now().toString().slice(-4)}`,
-      evidenceId: id,
-      projectId: prevItem.projectId,
-      actorName: currentUser?.name || 'Audit Officer',
-      actorRole: role,
-      action: 'APPROVE',
-      previousState: prevItem.auditStatus,
-      newState: 'APPROVED',
-      reason: note,
-      sha256Hash: prevItem.sha256,
-      timestamp: new Date().toISOString(),
-    };
-    setAuditEvents((prev) => [newAuditEvent, ...prev]);
+    addAuditEvent(prevItem, 'APPROVE', 'APPROVED', note);
 
     addToast({
       title: `Evidence ${id} Approved`,
@@ -380,6 +420,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setEvidenceList((prev) =>
       prev.map((e) => (e.id === id ? { ...e, auditStatus: 'REJECTED', reviewer: { ...e.reviewer, assignedTo: 'Current Reviewer', note: reason, decisionDate: new Date().toISOString() } } : e))
     );
+    addAuditEvent(prevItem, 'REJECT', 'REJECTED', reason);
 
     addToast({
       title: `Evidence ${id} Rejected`,
@@ -395,6 +436,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setEvidenceList((prev) =>
       prev.map((e) => (e.id === id ? { ...e, auditStatus: 'FLAGGED', reviewer: { ...e.reviewer, assignedTo: 'Current Reviewer', note: reason, decisionDate: new Date().toISOString() } } : e))
     );
+    addAuditEvent(prevItem, 'INSPECTION_REQUESTED', 'FLAGGED', reason);
 
     addToast({
       title: `Evidence ${id} Flagged`,
@@ -425,6 +467,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           : e
       )
     );
+    addAuditEvent(prevItem, 'OVERRIDE', 'OVERRIDDEN', mandatoryReason);
 
     addToast({
       title: `AI Finding Overridden for ${id}`,
@@ -434,8 +477,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const batchApprove = (ids: string[]) => {
+    const affectedItems = evidenceList.filter((item) => ids.includes(item.id));
     setEvidenceList((prev) =>
       prev.map((e) => (ids.includes(e.id) ? { ...e, auditStatus: 'APPROVED' } : e))
+    );
+    affectedItems.forEach((item) =>
+      addAuditEvent(item, 'APPROVE', 'APPROVED', 'Approved through bulk review action')
     );
     clearSelection();
     addToast({
@@ -446,8 +493,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const batchFlag = (ids: string[]) => {
+    const affectedItems = evidenceList.filter((item) => ids.includes(item.id));
     setEvidenceList((prev) =>
       prev.map((e) => (ids.includes(e.id) ? { ...e, auditStatus: 'FLAGGED' } : e))
+    );
+    affectedItems.forEach((item) =>
+      addAuditEvent(item, 'INSPECTION_REQUESTED', 'FLAGGED', 'Flagged through bulk review action')
     );
     clearSelection();
     addToast({

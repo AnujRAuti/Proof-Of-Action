@@ -22,18 +22,24 @@ export function KeyboardShortcutsModal() {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-primary/50 backdrop-blur-sm animate-page-enter">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-primary/50 backdrop-blur-sm animate-page-enter"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="keyboard-shortcuts-title"
+    >
       <div className="w-full max-w-lg bg-surface border border-border-hairline rounded-lg shadow-dropdown overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border-hairline bg-surface-sunken/40">
           <div className="flex items-center gap-2">
             <Keyboard className="w-4 h-4 text-saffron-deep dark:text-saffron" />
-            <h3 className="font-serif font-bold text-sm text-ink-primary">
+            <h3 id="keyboard-shortcuts-title" className="font-serif font-bold text-sm text-ink-primary">
               High-Velocity Reviewer Shortcuts
             </h3>
           </div>
           <button
             onClick={() => setIsShortcutsModalOpen(false)}
             className="p-1 rounded text-ink-muted hover:text-ink-primary"
+            aria-label="Close keyboard shortcuts"
           >
             <X className="w-4 h-4" />
           </button>
@@ -67,4 +73,3 @@ export function KeyboardShortcutsModal() {
     </div>
   );
 }
-

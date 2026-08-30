@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { notFound, useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n/context';
 import { useApp } from '@/lib/store/app-context';
+import { getProjectImage } from '@/lib/data/mock-dataset';
 import {
   ArrowLeft,
   MapPin,
@@ -25,7 +26,7 @@ export default function CitizenProjectDetailPage({ params }: { params: Promise<{
   const resolvedParams = use(params);
   const router = useRouter();
   const { t, formatDate } = useI18n();
-  const { projects, evidenceList, fileComplaint, addToast } = useApp();
+  const { projects, fileComplaint, addToast } = useApp();
 
   const project = projects.find((p) => p.id === resolvedParams.id) || projects[0];
   if (!project) return notFound();
@@ -38,10 +39,10 @@ export default function CitizenProjectDetailPage({ params }: { params: Promise<{
   const [isRecording, setIsRecording] = useState(false);
 
   const milestones = [
-    { title: 'Started', titleHi: 'कार्य शुरू', done: true, desc: 'Site survey and earthwork foundation' },
-    { title: 'Halfway', titleHi: 'आधा कार्य पूर्ण', done: true, desc: 'Base material and drainage construction' },
-    { title: 'Nearing Completion', titleHi: 'अंतिम चरण', done: project.status === 'COMPLETED', desc: 'Final asphalt wearing surface' },
-    { title: 'Completed', titleHi: 'कार्य पूर्ण', done: project.status === 'COMPLETED', desc: 'Opened for public transit' },
+    { title: 'Started', titleHi: 'कार्य शुरू', done: true, desc: 'Site survey and foundational inspection completed' },
+    { title: 'Halfway', titleHi: 'आधा कार्य पूर्ण', done: true, desc: 'Core structural execution verified by field engineer' },
+    { title: 'Nearing Completion', titleHi: 'अंतिम चरण', done: project.status === 'COMPLETED', desc: 'Finishing touches and quality assurance' },
+    { title: 'Completed', titleHi: 'कार्य पूर्ण', done: project.status === 'COMPLETED', desc: 'Certified and accessible for public use' },
   ];
 
   const handleQuickVote = (vote: 'UP' | 'DOWN') => {
@@ -77,7 +78,7 @@ export default function CitizenProjectDetailPage({ params }: { params: Promise<{
     e.preventDefault();
     if (!grievanceText.trim()) return;
 
-    const newCmp = fileComplaint({
+    fileComplaint({
       projectId: project.id,
       projectName: project.name,
       category: grievanceCategory,
@@ -89,6 +90,9 @@ export default function CitizenProjectDetailPage({ params }: { params: Promise<{
     setShowGrievanceModal(false);
     router.push('/citizen/complaints');
   };
+
+  const isSchoolWithBeforeAfter = project.id === 'PRJ-SSA-UP-512';
+  const projectImg = project.imageUrl || getProjectImage(project.id);
 
   return (
     <div className="space-y-6">
@@ -104,7 +108,7 @@ export default function CitizenProjectDetailPage({ params }: { params: Promise<{
       </div>
 
       {/* Project Overview Card */}
-      <div className="bg-surface border border-border-hairline rounded-xl p-5 sm:p-6 shadow-subtle space-y-4">
+      <div className="bg-surface border border-border-hairline rounded-2xl p-5 sm:p-6 shadow-subtle space-y-4">
         <div className="flex flex-wrap items-center gap-2">
           <span className="px-2.5 py-0.5 rounded-full bg-saffron/15 text-saffron-deep font-bold text-xs">
             {project.scheme}
@@ -118,7 +122,7 @@ export default function CitizenProjectDetailPage({ params }: { params: Promise<{
           {project.name}
         </h1>
 
-        <div className="p-3 bg-surface-sunken rounded-lg border border-border-hairline flex flex-wrap justify-between gap-3 text-xs">
+        <div className="p-3 bg-surface-sunken rounded-xl border border-border-hairline flex flex-wrap justify-between gap-3 text-xs">
           <div>
             <span className="text-ink-muted block text-[10px]">Government Sanction:</span>
             <span className="font-bold text-ink-primary">₹{(project.budgetInr / 10000000).toFixed(2)} Crore</span>
@@ -134,8 +138,8 @@ export default function CitizenProjectDetailPage({ params }: { params: Promise<{
         </div>
       </div>
 
-      {/* Plain-Language Milestone Progress Bar (Section 4.2) */}
-      <div className="bg-surface border border-border-hairline rounded-xl p-5 sm:p-6 shadow-subtle space-y-4">
+      {/* Plain-Language Milestone Progress Bar */}
+      <div className="bg-surface border border-border-hairline rounded-2xl p-5 sm:p-6 shadow-subtle space-y-4">
         <h2 className="font-serif font-bold text-base text-ink-primary">
           Project Progress Timeline (कार्य की प्रगति)
         </h2>
@@ -144,7 +148,7 @@ export default function CitizenProjectDetailPage({ params }: { params: Promise<{
           {milestones.map((m, i) => (
             <div
               key={i}
-              className={`p-3 rounded-lg border text-xs space-y-1 transition-all ${
+              className={`p-3 rounded-xl border text-xs space-y-1 transition-all ${
                 m.done
                   ? 'bg-india-green/10 border-india-green/30 text-ink-primary'
                   : 'bg-surface-sunken border-border-hairline text-ink-muted'
@@ -167,8 +171,8 @@ export default function CitizenProjectDetailPage({ params }: { params: Promise<{
         </div>
       </div>
 
-      {/* Field Photos Gallery (Before & After — NO Technical Jargon) */}
-      <div className="bg-surface border border-border-hairline rounded-xl p-5 sm:p-6 shadow-subtle space-y-4">
+      {/* Field Photos Gallery (Section 2 & 7) */}
+      <div className="bg-surface border border-border-hairline rounded-2xl p-5 sm:p-6 shadow-subtle space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-serif font-bold text-base text-ink-primary">
             Photos from the Work Site (स्थल की तस्वीरें)
@@ -176,45 +180,68 @@ export default function CitizenProjectDetailPage({ params }: { params: Promise<{
           <span className="text-xs text-ink-muted">Verified Field Records</span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Before Photo */}
-          <div className="space-y-1.5">
-            <div className="aspect-[4/3] bg-ink-primary rounded-lg overflow-hidden relative border border-border-hairline">
-              <img
-                src="https://images.unsplash.com/photo-1590486803833-1c5dc8ddd4c8?auto=format&fit=crop&w=600&q=80"
-                alt="Before Construction"
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute top-2 left-2 px-2.5 py-1 rounded bg-ink-primary/80 text-surface text-xs font-bold font-mono">
-                BEFORE (कार्य शुरू होने से पहले)
+        {isSchoolWithBeforeAfter ? (
+          /* School has dedicated Before/After pair */
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Before Photo */}
+            <div className="space-y-1.5">
+              <div className="aspect-[4/3] bg-ink-primary rounded-xl overflow-hidden relative border border-border-hairline">
+                <img
+                  src="/images/projects/school-before.jpg"
+                  alt="Before School Repair"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute top-2 left-2 px-2.5 py-1 rounded bg-ink-primary/80 text-surface text-xs font-bold font-mono">
+                  BEFORE (कार्य शुरू होने से पहले)
+                </div>
               </div>
+              <span className="text-xs text-ink-secondary block">
+                Pre-repair condition survey showing weathered classroom roof and masonry
+              </span>
             </div>
-            <span className="text-xs text-ink-secondary block">
-              Pre-repair condition survey photograph
-            </span>
-          </div>
 
-          {/* After / Current Photo */}
-          <div className="space-y-1.5">
-            <div className="aspect-[4/3] bg-ink-primary rounded-lg overflow-hidden relative border border-border-hairline">
+            {/* After / Current Photo */}
+            <div className="space-y-1.5">
+              <div className="aspect-[4/3] bg-ink-primary rounded-xl overflow-hidden relative border border-border-hairline">
+                <img
+                  src="/images/projects/school-after.jpg"
+                  alt="After School Repair"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute top-2 left-2 px-2.5 py-1 rounded bg-india-green text-surface text-xs font-bold font-mono">
+                  AFTER (कार्य पूर्ण)
+                </div>
+              </div>
+              <span className="text-xs text-ink-secondary block">
+                Completed structural roof screed and fresh exterior masonry paint
+              </span>
+            </div>
+          </div>
+        ) : (
+          /* Single Dedicated Project Photograph (No false before/after) */
+          <div className="space-y-2">
+            <div className="aspect-[16/9] max-h-[420px] bg-ink-primary rounded-2xl overflow-hidden relative border border-border-hairline">
               <img
-                src="https://images.unsplash.com/photo-1517649763962-0c623266ddc0?auto=format&fit=crop&w=600&q=80"
-                alt="Current Construction State"
+                src={projectImg}
+                alt={project.name}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute top-2 left-2 px-2.5 py-1 rounded bg-india-green text-surface text-xs font-bold font-mono">
-                RECENT WORK (हालिया स्थिति)
+              <div className="absolute top-3 left-3 px-3 py-1.5 rounded-lg bg-ink-primary/80 text-surface text-xs font-bold font-mono">
+                OFFICIAL SITE PHOTOGRAPH (स्थल का साक्ष्य)
+              </div>
+              <div className="absolute bottom-3 left-3 px-3 py-1 rounded-lg bg-surface/90 text-ink-primary text-xs font-semibold backdrop-blur-sm">
+                📍 {project.district}, {project.state} • Geofence {project.geofenceRadiusMeters}m
               </div>
             </div>
-            <span className="text-xs text-ink-secondary block">
-              Completed bituminous road surface with line marking
-            </span>
+            <p className="text-xs text-ink-secondary">
+              GPS-anchored photographic evidence recorded on site by the jurisdictional field officer.
+            </p>
           </div>
-        </div>
+        )}
       </div>
 
       {/* "Does this look right to you?" Citizen Feedback Card */}
-      <div className="bg-surface border-2 border-saffron/40 rounded-xl p-5 sm:p-6 shadow-dropdown space-y-4">
+      <div className="bg-surface border-2 border-saffron/40 rounded-2xl p-5 sm:p-6 shadow-dropdown space-y-4">
         <div className="space-y-1">
           <h2 className="font-serif font-bold text-lg text-ink-primary">
             Does this look right to you? (क्या यह कार्य सही लग रहा है?)
@@ -227,103 +254,97 @@ export default function CitizenProjectDetailPage({ params }: { params: Promise<{
         <div className="flex flex-wrap gap-3">
           <button
             onClick={() => handleQuickVote('UP')}
-            className={`flex-1 py-3 rounded-lg border-2 font-bold text-xs flex items-center justify-center gap-2 transition-all ${
+            className={`flex-1 py-3 rounded-xl border-2 font-bold text-xs flex items-center justify-center gap-2 transition-all ${
               feedbackVote === 'UP'
                 ? 'bg-india-green text-surface border-india-green'
                 : 'bg-surface border-india-green/40 text-india-green hover:bg-india-green/10'
             }`}
           >
             <ThumbsUp className="w-4 h-4" />
-            <span>Yes, looks good! (हाँ, कार्य सही है)</span>
+            <span>हाँ, कार्य सही है (Looks Good)</span>
           </button>
 
           <button
             onClick={() => handleQuickVote('DOWN')}
-            className={`flex-1 py-3 rounded-lg border-2 font-bold text-xs flex items-center justify-center gap-2 transition-all ${
+            className={`flex-1 py-3 rounded-xl border-2 font-bold text-xs flex items-center justify-center gap-2 transition-all ${
               feedbackVote === 'DOWN'
                 ? 'bg-risk-high text-surface border-risk-high'
                 : 'bg-surface border-risk-high/40 text-risk-high hover:bg-risk-high/10'
             }`}
           >
             <ThumbsDown className="w-4 h-4" />
-            <span>No, something is wrong (शिकायत है)</span>
+            <span>कुछ समस्या है (Report Concern)</span>
           </button>
         </div>
       </div>
 
-      {/* Formal Grievance Redressal Modal */}
+      {/* Grievance Modal if user clicked ThumbsDown */}
       {showGrievanceModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-primary/50 backdrop-blur-sm animate-page-enter">
-          <div className="w-full max-w-lg bg-surface border border-border-hairline rounded-xl shadow-dropdown overflow-hidden">
-            <form onSubmit={handleSubmitGrievance}>
-              <div className="px-5 py-4 border-b border-border-hairline bg-surface-sunken">
-                <h3 className="font-serif font-bold text-base text-ink-primary">
-                  Report a Concern (शिकायत दर्ज करें)
-                </h3>
-                <p className="text-xs text-ink-secondary mt-0.5">
-                  Regarding: {project.name}
-                </p>
+        <div className="fixed inset-0 z-50 bg-ink-primary/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-surface border border-border-hairline rounded-2xl p-6 space-y-4 shadow-dropdown animate-page-enter">
+            <div className="flex items-center justify-between border-b border-border-hairline pb-3">
+              <h3 className="font-serif font-bold text-base text-ink-primary">
+                Report a Site Concern (शिकायत दर्ज करें)
+              </h3>
+              <button
+                onClick={() => setShowGrievanceModal(false)}
+                className="text-ink-muted hover:text-ink-primary font-bold text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitGrievance} className="space-y-4 text-xs">
+              <div>
+                <label className="font-bold text-ink-primary block mb-1">Issue Category:</label>
+                <select
+                  value={grievanceCategory}
+                  onChange={(e) => setGrievanceCategory(e.target.value)}
+                  className="w-full p-2.5 rounded-xl bg-surface-sunken border border-border-hairline text-ink-primary"
+                >
+                  <option>Construction Quality (खराब गुणवत्ता)</option>
+                  <option>Work Stopped / Incomplete (कार्य रुका हुआ है)</option>
+                  <option>Drainage / Waterlogging (जलभराव या नाली की समस्या)</option>
+                  <option>Potholes / Surface Crack (सड़क पर गड्ढे)</option>
+                </select>
               </div>
 
-              <div className="p-5 space-y-4 text-xs">
-                <div>
-                  <label className="font-semibold text-ink-primary block mb-1">
-                    What is the issue? (समस्या का प्रकार):
-                  </label>
-                  <select
-                    value={grievanceCategory}
-                    onChange={(e) => setGrievanceCategory(e.target.value)}
-                    className="w-full px-3 py-2 rounded bg-surface-sunken border border-border-hairline text-ink-primary text-xs font-medium"
-                  >
-                    <option>Construction Quality (खराब गुणवत्ता)</option>
-                    <option>Drainage / Rain Water Blockage (नाली बंद)</option>
-                    <option>Work Delayed or Stopped (कार्य रुका हुआ)</option>
-                    <option>Asset Not Working (सुविधा चालू नहीं)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="font-semibold text-ink-primary">
-                      Describe what you observed (विवरण):
-                    </label>
-                    <button
-                      type="button"
-                      onClick={handleToggleVoice}
-                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] font-bold ${
-                        isRecording
-                          ? 'bg-risk-critical text-surface animate-pulse'
-                          : 'bg-saffron/20 text-saffron-deep'
-                      }`}
-                    >
-                      <Mic className="w-3.5 h-3.5" />
-                      <span>{isRecording ? 'सुन रहे हैं... (Listening)' : 'बोलकर लिखें (Voice)'}</span>
-                    </button>
-                  </div>
-                  <textarea
-                    rows={3}
-                    value={grievanceText}
-                    onChange={(e) => setGrievanceText(e.target.value)}
-                    placeholder="कृपया बताएं कि क्या कमी है..."
-                    className="w-full px-3 py-2 rounded bg-surface-sunken border border-border-hairline text-ink-primary text-xs focus:outline-none focus:border-saffron"
-                    required
-                  />
-                </div>
+              <div>
+                <label className="font-bold text-ink-primary block mb-1">Describe the problem:</label>
+                <textarea
+                  value={grievanceText}
+                  onChange={(e) => setGrievanceText(e.target.value)}
+                  placeholder="Tell us what is wrong with this work..."
+                  rows={3}
+                  className="w-full p-3 rounded-xl bg-surface-sunken border border-border-hairline text-xs text-ink-primary"
+                  required
+                />
               </div>
 
-              <div className="px-5 py-3 bg-surface-sunken border-t border-border-hairline flex justify-end gap-2 text-xs">
+              <button
+                type="button"
+                onClick={handleToggleVoice}
+                className={`w-full py-2.5 rounded-xl border font-bold text-xs flex items-center justify-center gap-1.5 ${
+                  isRecording ? 'bg-risk-high text-surface border-risk-high animate-pulse' : 'bg-surface-sunken text-ink-primary'
+                }`}
+              >
+                <Mic className="w-4 h-4 text-saffron-deep" />
+                <span>{isRecording ? 'Listening in Hindi/Marathi...' : 'Or Tap to Speak (बोलकर बताएं)'}</span>
+              </button>
+
+              <div className="flex gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowGrievanceModal(false)}
-                  className="px-4 py-2 rounded bg-surface border border-border-hairline text-ink-secondary"
+                  className="px-4 py-2.5 rounded-xl bg-surface border border-border-hairline text-ink-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded bg-india-green text-surface font-bold hover:opacity-90 transition-opacity flex items-center gap-1.5"
+                  className="flex-1 py-2.5 rounded-xl bg-saffron text-ink-primary font-bold hover:bg-saffron-deep"
                 >
-                  <span>Submit Concern (शिकायत भेजें)</span>
+                  Submit to District Reviewer
                 </button>
               </div>
             </form>
@@ -333,4 +354,3 @@ export default function CitizenProjectDetailPage({ params }: { params: Promise<{
     </div>
   );
 }
-

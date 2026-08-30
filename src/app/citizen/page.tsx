@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useI18n } from '@/lib/i18n/context';
 import { useApp } from '@/lib/store/app-context';
+import { getProjectImage } from '@/lib/data/mock-dataset';
 import {
   MapPin,
   Search,
@@ -33,19 +34,6 @@ export default function CitizenHomePage() {
     { key: 'SCHOOL', label: 'Schools (विद्यालय)' },
     { key: 'SOLAR', label: 'Solar (सौर ऊर्जा)' },
   ];
-
-  const getProjectImg = (scheme: string) => {
-    if (scheme.includes('Jal') || scheme.includes('Water')) {
-      return 'https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=400&q=80';
-    }
-    if (scheme.includes('Shiksha') || scheme.includes('School')) {
-      return 'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?auto=format&fit=crop&w=400&q=80';
-    }
-    if (scheme.includes('KUSUM') || scheme.includes('Solar')) {
-      return 'https://images.unsplash.com/photo-1508873696983-2df5293cb32b?auto=format&fit=crop&w=400&q=80';
-    }
-    return 'https://images.unsplash.com/photo-1517649763962-0c623266ddc0?auto=format&fit=crop&w=400&q=80';
-  };
 
   const filtered = projects.filter((p) => {
     if (selectedCategory === 'ROAD' && !p.scheme.includes('Road') && !p.scheme.includes('PMGSY')) return false;
@@ -159,6 +147,7 @@ export default function CitizenHomePage() {
         <div className="space-y-4">
           {filtered.map((p) => {
             const isCompleted = p.status === 'COMPLETED';
+            const projectImg = p.imageUrl || getProjectImage(p.id);
             return (
               <div
                 key={p.id}
@@ -166,7 +155,7 @@ export default function CitizenHomePage() {
               >
                 <div className="flex gap-4 items-start">
                   <img
-                    src={getProjectImg(p.scheme)}
+                    src={projectImg}
                     alt={p.name}
                     className="w-24 sm:w-28 h-24 rounded-xl object-cover bg-ink-primary shrink-0 border border-border-hairline"
                   />

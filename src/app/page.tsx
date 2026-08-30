@@ -251,7 +251,7 @@ export default function LandingPage() {
       desc: 'Full-spectrum review queue, 7-signal fusion inspector, before/after structural comparison, GIS geofence map, and audit ledger.',
       cta: 'Reviewer Login',
       href: '/login?role=reviewer',
-      ctaClass: 'bg-navy text-surface hover:bg-navy/90 dark:bg-[#7FA8D9] dark:text-navy',
+      ctaClass: 'bg-navy text-white hover:bg-navy/90 dark:bg-[#7FA8D9] dark:text-[#111111]',
       border: 'border-navy/40 dark:border-[#7FA8D9]/40',
       badge: 'Institutional Desk',
     },
@@ -348,7 +348,7 @@ export default function LandingPage() {
                   Evidence Fusion Graph
                 </span>
               </div>
-              <span className="text-[10px] font-mono text-ink-muted">EIIL Core v3.0</span>
+            
             </div>
 
             <ProofFlowAnimation />

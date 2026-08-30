@@ -27,7 +27,7 @@ export default function SupervisorOnboardingPage() {
       titleHi: 'कैमरा ऐसे रखें कि पूरा निर्माण कार्य साफ दिखे',
       desc: 'Do not take close-up photos of ground or people. Step back 10–15 metres so the road surface, water pump, or school roof is clearly framed.',
       descHi: 'सड़क या ढांचे से 10-15 मीटर पीछे खड़े होकर फोटो लें ताकि पूरा काम साफ दिखाई दे।',
-      image: 'https://images.unsplash.com/photo-1517649763962-0c623266ddc0?auto=format&fit=crop&w=600&q=80',
+      image: '/images/projects/road-pothole.jpg',
     },
     {
       icon: MapPin,
@@ -36,7 +36,7 @@ export default function SupervisorOnboardingPage() {
       titleHi: 'हमेशा वास्तविक कार्य स्थल पर जाकर ही फोटो खींचें',
       desc: 'The system checks GPS coordinates automatically. Never upload photos received over WhatsApp from other locations — it will be flagged.',
       descHi: 'सिस्टम अपने आप लोकेशन चेक करता है। किसी अन्य जगह से या व्हाट्सएप से आई पुरानी फोटो न डालें।',
-      image: 'https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=600&q=80',
+      image: '/images/projects/water-pump.jpg',
     },
     {
       icon: WifiOff,
@@ -45,7 +45,7 @@ export default function SupervisorOnboardingPage() {
       titleHi: 'बिना इंटरनेट के भी फोटो खींची जा सकती है',
       desc: 'In remote rural areas with zero signal, keep taking photos. They stay safely saved on your phone and will upload automatically once you reach network.',
       descHi: 'दूरदराज के इलाकों में बिना नेटवर्क के भी फोटो खींचें। नेटवर्क मिलने पर फोटो अपने आप पोर्टल पर चली जाएगी।',
-      image: 'https://images.unsplash.com/photo-1508873696983-2df5293cb32b?auto=format&fit=crop&w=600&q=80',
+      image: '/images/projects/solar-plant.jpg',
     },
   ];
 

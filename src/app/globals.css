@@ -60,6 +60,19 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
+  line-height: 1.5;
+}
+
+/* Small metadata stays compact without becoming unreadable in a presentation
+   room or on a mid-sized field phone. */
+.text-\[9px\] {
+  font-size: 0.6875rem !important;
+  line-height: 1.35 !important;
+}
+
+.text-\[10px\] {
+  font-size: 0.75rem !important;
+  line-height: 1.4 !important;
 }
 
 /* Indic & Arabic Script Rhythm Adjustment */
@@ -162,3 +175,11 @@ html, body {
   outline-offset: 2px;
 }
 
+@media (max-width: 640px) {
+  /* Avoid iOS zooming when a field user enters a value. */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}

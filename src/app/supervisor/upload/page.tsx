@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useI18n } from '@/lib/i18n/context';
 import { useApp } from '@/lib/store/app-context';
+import { getProjectImage } from '@/lib/data/mock-dataset';
 import {
   Camera,
   MapPin,
@@ -29,13 +30,15 @@ import {
 function SupervisorUploadWizardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialProjectId = searchParams?.get('projectId') || undefined;
-
-  const { t, formatDate } = useI18n();
+  const { t } = useI18n();
   const { projects, addToast } = useApp();
 
-  const [step, setStep] = useState<number>(1); // 1 = Confirm Site, 2 = Photo/Video, 3 = Multi-Signal Check (Location + Duplicate), 4 = Voice Note, 5 = Submit
-  const [selectedProjectId, setSelectedProjectId] = useState<string>(initialProjectId || projects[0]?.id);
+  const preselectedId = searchParams?.get('projectId');
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(
+    preselectedId || projects[0]?.id || 'PRJ-PMGSY-MH-401'
+  );
+
+  const [step, setStep] = useState<number>(preselectedId ? 2 : 1);
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [voiceNote, setVoiceNote] = useState('');
@@ -54,9 +57,7 @@ function SupervisorUploadWizardContent() {
   const handleSnap = () => {
     setIsCapturing(true);
     setTimeout(() => {
-      setCapturedPhoto(
-        'https://images.unsplash.com/photo-1517649763962-0c623266ddc0?auto=format&fit=crop&w=800&q=80'
-      );
+      setCapturedPhoto(activeProject?.imageUrl || getProjectImage(activeProject?.id));
       setIsCapturing(false);
       setStep(3);
     }, 450);
@@ -287,7 +288,8 @@ function SupervisorUploadWizardContent() {
             <img
               src={
                 capturedPhoto ||
-                'https://images.unsplash.com/photo-1517649763962-0c623266ddc0?auto=format&fit=crop&w=800&q=80'
+                activeProject?.imageUrl ||
+                getProjectImage(activeProject?.id)
               }
               alt="Captured evidence preview"
               className="w-full h-full object-cover"

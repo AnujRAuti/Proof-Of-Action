@@ -26,7 +26,13 @@ import {
 export function DpiHeader() {
   const { t, language, setLanguage, currentLanguage } = useI18n();
   const { theme, setTheme } = useTheme();
-  const { currentUser, role, logoutUser, setIsCommandPaletteOpen } = useApp();
+  const {
+    currentUser,
+    role,
+    logoutUser,
+    setIsCommandPaletteOpen,
+    setIsShortcutsModalOpen,
+  } = useApp();
 
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [langQuery, setLangQuery] = useState('');
@@ -42,6 +48,27 @@ export function DpiHeader() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    const handleGlobalShortcut = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isTyping = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable;
+
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setIsCommandPaletteOpen(true);
+        return;
+      }
+
+      if (!isTyping && event.key === '?') {
+        event.preventDefault();
+        setIsShortcutsModalOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalShortcut);
+    return () => window.removeEventListener('keydown', handleGlobalShortcut);
+  }, [setIsCommandPaletteOpen, setIsShortcutsModalOpen]);
 
   const filteredLanguages = SUPPORTED_LANGUAGES.filter(
     (l) =>
@@ -123,7 +150,7 @@ export function DpiHeader() {
                     type="text"
                     value={langQuery}
                     onChange={(e) => setLangQuery(e.target.value)}
-                    placeholder="Search 12 official languages..."
+                    placeholder=""
                     className="w-full bg-transparent text-xs text-ink-primary placeholder-ink-muted focus:outline-none"
                     autoFocus
                   />

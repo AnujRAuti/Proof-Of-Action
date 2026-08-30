@@ -91,7 +91,12 @@ export function CommandPalette() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-ink-primary/50 backdrop-blur-sm animate-page-enter">
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-ink-primary/50 backdrop-blur-sm animate-page-enter"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Search projects and evidence"
+    >
       <div
         className="w-full max-w-xl bg-surface border border-border-hairline rounded-lg shadow-dropdown overflow-hidden flex flex-col"
         onKeyDown={handleKeyDown}
@@ -108,11 +113,13 @@ export function CommandPalette() {
               setSelectedIndex(0);
             }}
             placeholder="Type project ID, evidence hash, district, or action..."
+            aria-label="Search projects, evidence, districts, and actions"
             className="w-full bg-transparent text-sm text-ink-primary placeholder-ink-muted focus:outline-none"
           />
           <button
             onClick={() => setIsCommandPaletteOpen(false)}
             className="p-1 rounded text-ink-muted hover:text-ink-primary"
+            aria-label="Close search"
           >
             <X className="w-4 h-4" />
           </button>
@@ -166,4 +173,3 @@ export function CommandPalette() {
     </div>
   );
 }
-

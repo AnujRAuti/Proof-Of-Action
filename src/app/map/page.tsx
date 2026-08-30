@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useI18n } from '@/lib/i18n/context';
 import { useApp } from '@/lib/store/app-context';
+import { getProjectImage } from '@/lib/data/mock-dataset';
 import { IntegrityArc } from '@/components/ui/integrity-arc';
 import {
   MapPin,
@@ -252,6 +253,14 @@ export default function GeofenceMapPage() {
                 </h3>
               </div>
               <IntegrityArc score={activeProject.evidenceHealthScore} size="sm" showLabel />
+            </div>
+
+            <div className="aspect-[16/9] w-full rounded-xl overflow-hidden bg-ink-primary border border-border-hairline relative">
+              <img
+                src={activeProject.imageUrl || getProjectImage(activeProject.id)}
+                alt={activeProject.name}
+                className="w-full h-full object-cover"
+              />
             </div>
 
             <div className="space-y-2.5 text-xs">

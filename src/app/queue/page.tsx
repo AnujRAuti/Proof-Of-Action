@@ -52,52 +52,6 @@ export default function ReviewQueuePage() {
   const [activeRowIndex, setActiveRowIndex] = useState<number>(0);
   const [hoveredAnomaly, setHoveredAnomaly] = useState<{ id: string; title: string; desc: string } | null>(null);
 
-  // Keyboard navigation implementation (j/k, a, r, f, Enter)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
-        return;
-      }
-
-      if (filteredList.length === 0) return;
-
-      if (e.key === 'j' || e.key === 'ArrowDown') {
-        e.preventDefault();
-        setActiveRowIndex((prev) => (prev < filteredList.length - 1 ? prev + 1 : prev));
-      } else if (e.key === 'k' || e.key === 'ArrowUp') {
-        e.preventDefault();
-        setActiveRowIndex((prev) => (prev > 0 ? prev - 1 : 0));
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        const currentItem = filteredList[activeRowIndex];
-        if (currentItem) {
-          router.push(`/evidence/${currentItem.id}`);
-        }
-      } else if (e.key === 'a') {
-        e.preventDefault();
-        const currentItem = filteredList[activeRowIndex];
-        if (currentItem) {
-          approveEvidence(currentItem.id, 'Keyboard shortcut approval');
-        }
-      } else if (e.key === 'r') {
-        e.preventDefault();
-        const currentItem = filteredList[activeRowIndex];
-        if (currentItem) {
-          rejectEvidence(currentItem.id, 'Keyboard shortcut rejection');
-        }
-      } else if (e.key === 'f') {
-        e.preventDefault();
-        const currentItem = filteredList[activeRowIndex];
-        if (currentItem) {
-          flagEvidence(currentItem.id, 'Keyboard shortcut flag for field verification');
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeRowIndex, evidenceList, router]);
-
   // Filter pipeline
   const filteredList = evidenceList.filter((item) => {
     // Tab filter
@@ -130,6 +84,43 @@ export default function ReviewQueuePage() {
 
     return true;
   });
+
+  // Keyboard navigation always follows the current filters rather than a
+  // previously rendered list.
+  useEffect(() => {
+    setActiveRowIndex((previous) => Math.min(previous, Math.max(filteredList.length - 1, 0)));
+  }, [filteredList.length]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
+      if (filteredList.length === 0) return;
+
+      const currentItem = filteredList[activeRowIndex];
+      if (e.key === 'j' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        setActiveRowIndex((prev) => Math.min(prev + 1, filteredList.length - 1));
+      } else if (e.key === 'k' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        setActiveRowIndex((prev) => Math.max(prev - 1, 0));
+      } else if (e.key === 'Enter' && currentItem) {
+        e.preventDefault();
+        router.push(`/evidence/${currentItem.id}`);
+      } else if (e.key === 'a' && currentItem) {
+        e.preventDefault();
+        approveEvidence(currentItem.id, 'Keyboard shortcut approval');
+      } else if (e.key === 'r' && currentItem) {
+        e.preventDefault();
+        rejectEvidence(currentItem.id, 'Keyboard shortcut rejection');
+      } else if (e.key === 'f' && currentItem) {
+        e.preventDefault();
+        flagEvidence(currentItem.id, 'Keyboard shortcut flag for field verification');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeRowIndex, approveEvidence, filteredList, flagEvidence, rejectEvidence, router]);
 
   const isAllSelected =
     filteredList.length > 0 && filteredList.every((item) => selectedEvidenceIds.includes(item.id));
@@ -574,4 +565,3 @@ export default function ReviewQueuePage() {
     </div>
   );
 }
-

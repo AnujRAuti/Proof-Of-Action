@@ -4,7 +4,7 @@ import React, { useState, useRef } from 'react';
 import Link from 'next/link';
 import { useI18n } from '@/lib/i18n/context';
 import { useApp } from '@/lib/store/app-context';
-import { IntegrityArc } from '@/components/ui/integrity-arc';
+import { getProjectImage } from '@/lib/data/mock-dataset';
 import {
   SplitSquareVertical,
   Columns,
@@ -27,18 +27,20 @@ export default function BeforeAfterComparePage() {
   const { t } = useI18n();
   const { evidenceList, projects } = useApp();
 
+  // Find school project which has the dedicated Before/After pair
   const comparisonPairs = evidenceList.filter((e) => e.beforeImageUrl);
-  const [selectedPairId, setSelectedPairId] = useState<string>(
-    comparisonPairs[0]?.id || evidenceList[0]?.id
-  );
+  const defaultEvidence =
+    evidenceList.find((e) => e.id === 'EVD-2026-7734') ||
+    comparisonPairs[0] ||
+    evidenceList[0];
 
-  const activeEvidence = evidenceList.find((e) => e.id === selectedPairId) || evidenceList[0];
-  const activeProject = projects.find((p) => p.id === activeEvidence.projectId) || projects[0];
+  const [selectedPairId, setSelectedPairId] = useState<string>(defaultEvidence.id);
 
-  const beforeImg =
-    activeEvidence.beforeImageUrl ||
-    'https://images.unsplash.com/photo-1590486803833-1c5dc8ddd4c8?auto=format&fit=crop&w=1200&q=80';
-  const afterImg = activeEvidence.imageUrl;
+  const activeEvidence = evidenceList.find((e) => e.id === selectedPairId) || defaultEvidence;
+  const activeProject = projects.find((p) => p.id === activeEvidence.projectId) || projects[2] || projects[0];
+
+  const beforeImg = activeEvidence.beforeImageUrl || '/images/projects/school-before.jpg';
+  const afterImg = activeEvidence.imageUrl || '/images/projects/school-after.jpg';
 
   const [mode, setMode] = useState<'SLIDER' | 'SIDE_BY_SIDE'>('SLIDER');
   const [sliderPos, setSliderPos] = useState<number>(50);
@@ -65,7 +67,7 @@ export default function BeforeAfterComparePage() {
     if (e.touches[0]) handleSliderMove(e.touches[0].clientX);
   };
 
-  const changeScore = activeEvidence.structuralChangeConfidence || 91;
+  const changeScore = activeEvidence.structuralChangeConfidence || 94;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-[1440px] mx-auto space-y-6">
@@ -106,7 +108,7 @@ export default function BeforeAfterComparePage() {
         </div>
       </div>
 
-      {/* Prominent Project Dossier Association Bar (Section 8 & 12) */}
+      {/* Prominent Project Dossier Association Bar */}
       <div className="bg-surface border-2 border-border-hairline rounded-2xl p-5 shadow-subtle flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
@@ -116,8 +118,8 @@ export default function BeforeAfterComparePage() {
             <span className="text-xs font-semibold text-saffron-deep dark:text-saffron">
               {activeProject.scheme}
             </span>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-surface-sunken text-ink-muted border">
-              Demo Evidence
+            <span className="text-[10px] px-2 py-0.5 rounded bg-india-green/10 text-india-green font-bold border border-india-green/20">
+              Verified Milestone Pair
             </span>
           </div>
           <h2 className="font-serif font-bold text-base sm:text-lg text-ink-primary">
@@ -215,7 +217,7 @@ export default function BeforeAfterComparePage() {
         </div>
       </div>
 
-      {/* Main Comparison Canvas */}
+      {/* Main Comparison Canvas (Section 4) */}
       {mode === 'SLIDER' ? (
         <div
           ref={containerRef}
@@ -233,7 +235,7 @@ export default function BeforeAfterComparePage() {
           >
             <img
               src={afterImg}
-              alt="After Public Works Completion"
+              alt="After School Structural Repair"
               className="w-full h-full object-cover"
             />
 
@@ -258,7 +260,7 @@ export default function BeforeAfterComparePage() {
           >
             <img
               src={beforeImg}
-              alt="Before Public Works State"
+              alt="Before School State"
               className="absolute inset-0 w-full h-full object-cover max-w-none"
               style={{ width: containerRef.current?.clientWidth || '100%' }}
             />
@@ -274,12 +276,12 @@ export default function BeforeAfterComparePage() {
             </div>
           </div>
 
-          {/* Floating Labels */}
+          {/* Floating Labels (Section 4) */}
           <div className="absolute top-3 left-3 z-20 px-3 py-1.5 rounded-lg bg-ink-primary/90 backdrop-blur-sm text-surface text-xs font-bold font-mono">
             BEFORE (Baseline Site Survey)
           </div>
           <div className="absolute top-3 right-3 z-20 px-3 py-1.5 rounded-lg bg-saffron text-ink-primary text-xs font-bold font-mono shadow">
-            AFTER (Completed Asphalt Surface)
+            AFTER (Completed / Post-Repair)
           </div>
         </div>
       ) : (
@@ -287,35 +289,35 @@ export default function BeforeAfterComparePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-surface border border-border-hairline rounded-2xl overflow-hidden shadow-subtle">
             <div className="p-3 bg-surface-sunken border-b border-border-hairline font-bold text-xs flex justify-between items-center">
-              <span className="font-mono text-ink-primary">BEFORE: Baseline Site Survey</span>
-              <span className="text-[10px] text-ink-muted">Recorded Mar 2026</span>
+              <span className="font-mono text-ink-primary">BEFORE (Baseline Site Survey)</span>
+              <span className="text-[10px] text-ink-muted">Pre-repair Classroom Structure</span>
             </div>
             <div className="aspect-[4/3] relative bg-ink-primary overflow-hidden">
               <img src={beforeImg} alt="Before State" className="w-full h-full object-cover" />
             </div>
             <div className="p-3 text-xs text-ink-secondary space-y-1">
-              <div className="font-semibold text-ink-primary">Pre-construction unpaved dirt subgrade with potholes</div>
+              <div className="font-semibold text-ink-primary">Pre-repair condition showing weathered roof and cracked masonry</div>
               <div className="font-mono text-[10px] text-ink-muted">Lat: {activeProject.centroid.lat}° N, Lng: {activeProject.centroid.lng}° E</div>
             </div>
           </div>
 
           <div className="bg-surface border border-border-hairline rounded-2xl overflow-hidden shadow-subtle">
             <div className="p-3 bg-surface-sunken border-b border-border-hairline font-bold text-xs flex justify-between items-center">
-              <span className="font-mono text-saffron-deep dark:text-saffron">AFTER: Completed Execution</span>
-              <span className="text-[10px] text-india-green font-bold">Verified Asphalt Top</span>
+              <span className="font-mono text-saffron-deep dark:text-saffron">AFTER (Completed / Post-Repair)</span>
+              <span className="text-[10px] text-india-green font-bold">Verified Plaster &amp; Roof Screed</span>
             </div>
             <div className="aspect-[4/3] relative bg-ink-primary overflow-hidden">
               <img src={afterImg} alt="After State" className="w-full h-full object-cover" />
             </div>
             <div className="p-3 text-xs text-ink-secondary space-y-1">
-              <div className="font-semibold text-ink-primary">Completed 40mm thick asphalt concrete wearing carpet</div>
+              <div className="font-semibold text-ink-primary">Completed structural slab waterproofing, crack injection, and fresh repainting</div>
               <div className="font-mono text-[10px] text-ink-muted">Lat: {activeEvidence.location.lat}° N, Lng: {activeEvidence.location.lng}° E</div>
             </div>
           </div>
         </div>
       )}
 
-      {/* 4 Multi-Signal Verification Badges (Section 11 & 12) */}
+      {/* 4 Multi-Signal Verification Badges */}
       <div className="bg-surface border border-border-hairline rounded-2xl p-5 shadow-subtle space-y-4">
         <h3 className="font-serif font-bold text-sm text-ink-primary">
           Evidence Consistency &amp; Verification Signals
@@ -328,7 +330,7 @@ export default function BeforeAfterComparePage() {
               <span>Same Project Boundary</span>
             </div>
             <p className="text-[11px] text-ink-secondary">
-              Both photographs reside within the approved 150m geofence radius.
+              Both photographs reside within the approved 80m geofence radius.
             </p>
           </div>
 
@@ -338,7 +340,7 @@ export default function BeforeAfterComparePage() {
               <span>GPS Location Consistent</span>
             </div>
             <p className="text-[11px] text-ink-secondary">
-              Distance offset is 28 meters from site centroid (Within 50m tolerance).
+              Distance offset is 18 meters from site centroid (Within 50m tolerance).
             </p>
           </div>
 
@@ -348,7 +350,7 @@ export default function BeforeAfterComparePage() {
               <span>Timeline Consistent</span>
             </div>
             <p className="text-[11px] text-ink-secondary">
-              Captured 5 months after baseline survey, matching construction DPR schedule.
+              Captured 3 months after baseline survey, matching school vacation DPR schedule.
             </p>
           </div>
 
