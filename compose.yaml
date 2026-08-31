@@ -1,0 +1,16 @@
+services:
+  api:
+    image: sih-api
+    build:
+      context: api/
+      dockerfile: ./Dockerfile
+    ports:
+      - "${API_PORT}:8000"
+
+  client:
+    image: sih-client
+    build:
+      context: client/
+      dockerfile: ./Dockerfile
+    ports:
+      - "${CLIENT_PORT}:3000"
