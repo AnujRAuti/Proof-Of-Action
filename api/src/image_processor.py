@@ -1,28 +1,38 @@
-from transformers import pipeline
+from typing import final
 
+from PIL import Image
+from transformers import ImageTextToTextPipeline, pipeline
+
+
+@final
 class ImageProcessor:
+    message = {
+            "role": "system",
+            "content": [
+                {
+                    "type": "text",
+                    "text": "You are a generic comparison bot whose purpose is to analyze two images and compare them in detail. You will describe the differences with the fewest words possible while still covering every important point. The output should be unformatted. Ensure that only differences are covered, and no description of the scenes beyond that.",
+                }
+            ],
+        }
+
     def __init__(self):
-        self.pipe = pipeline("image-text-to-text", model="Qwen/Qwen3.5-4B")
-        self.messages = [
+        self.pipe: ImageTextToTextPipeline = pipeline("image-text-to-text", model="Qwen/Qwen3.5-4B")
+
+    def compare_images(self, before_img: Image.Image, after_img: Image.Image) -> str:
+        prompted_message = [
+            ImageProcessor.message,
             {
-                "role": "system",
+                "role": "user",
                 "content": [
-                    {"type": "text", "text": "You are a generic comparison bot whose purpose is to analyze two images and compare them in detail. You will describe the differences with the fewest words possible while still covering every important point. The output should be unformatted. Ensure that only differences are covered, and no description of the scenes beyond that."}
-                ]
+                    {"type": "image", "image": before_img},
+                    {"type": "image", "image": after_img},
+                    {"type": "text", "text": "/think"},
+                ],
             }
         ]
 
-    def compare_images(self):
-        self.messages.append({
-            "role": "user",
-            "content": [
-                {"type": "image", "url": "before.png"},
-                {"type": "image", "url": "after.png"},
-                {"type": "text", "text": "/think"},
-            ]
-        })
-
-        result = self.pipe(text=self.messages, max_new_tokens=8192)
-        clean_output = result[0]['generated_text'][-1]['content'].split('</think>')[-1].strip()
+        result = self.pipe(text=prompted_message, max_new_tokens=8192)
+        clean_output: str = result[0]["generated_text"][-1]["content"].split("</think>")[-1].strip()
 
         return clean_output
