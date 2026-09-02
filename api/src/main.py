@@ -1,5 +1,6 @@
 import io
 
+from datetime import date
 from fastapi import APIRouter, FastAPI, UploadFile
 from PIL import Image
 
@@ -11,7 +12,7 @@ api = APIRouter()
 image_processor = ImageProcessor()
 
 @api.post("/images/")
-async def get_images(before_img: UploadFile, after_img: UploadFile):
+async def get_images(before_img: UploadFile, after_img: UploadFile, before_coords: tuple[float, float], after_coords: tuple[float, float], before_date: date, after_date: date):
     before_img_bytes: bytes = await before_img.read()
     after_img_bytes: bytes = await after_img.read()
 
