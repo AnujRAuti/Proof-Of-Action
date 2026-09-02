@@ -19,7 +19,7 @@ async def get_images(before_img: UploadFile, after_img: UploadFile, before_coord
     before_img_file: Image.Image = Image.open(io.BytesIO(before_img_bytes))
     after_img_file: Image.Image = Image.open(io.BytesIO(after_img_bytes))
 
-    response = image_processor.compare_images(before_img_file, after_img_file)
+    response = image_processor.compare_images(before_img_file, after_img_file, before_coords, after_coords, before_date, after_date)
 
     return {"response": response}
 
