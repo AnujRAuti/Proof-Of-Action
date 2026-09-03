@@ -1,0 +1,1225 @@
+PROOF-OF-ACTION (PoA)
+Technical Flow, Tech Stack, Core Model & App Development Timeline
+Smart India Hackathon 2026
+
+============================================================
+1. PROJECT OVERVIEW
+============================================================
+
+Proof-of-Action (PoA), technically called the Evidence Integrity &
+Intelligence Layer (EIIL), is an API-first platform that audits
+existing field evidence.
+
+The system does NOT claim to prove that physical work happened.
+Instead, it evaluates whether submitted evidence is:
+
+- Spatially consistent
+- Temporally consistent
+- Visually consistent
+- Complete
+- Relevant to the claim
+- Duplicated or recycled
+- Potentially manipulated
+- Inconsistent with other evidence
+- Suspicious when compared across projects
+
+The output is an Evidence Integrity Score, Risk Score, anomaly
+explanations, and a recommended human-review action.
+
+Core positioning:
+"We don't collect more evidence; we make existing evidence trustworthy."
+
+============================================================
+2. TECHNICAL FLOW
+============================================================
+
+EXISTING SYSTEM / FIELD APP
+        |
+        v
+EVIDENCE INGESTION
+(Image / Video / PDF / JSON / GPS)
+        |
+        v
+UPLOAD VALIDATION
+(MIME / Size / Corruption / Required metadata)
+        |
+        v
+SHA-256 HASH
+(Immutable identity of received file)
+        |
+        v
+METADATA EXTRACTION
+(EXIF / GPS / Timestamp / Camera information)
+        |
+        v
+ASYNC PROCESSING QUEUE
+(Redis)
+        |
+        +-------------------+-------------------+
+        |                   |                   |
+        v                   v                   v
+     VISION               GEO                 TIME
+     ENGINE              ENGINE              ENGINE
+        |                   |                   |
+        v                   v                   v
+ Objects              Geofence             Timeline
+ Embeddings            Distance             Sequence
+ Quality               Movement             Validation
+ Changes
+        |                   |                   |
+        +-------------------+-------------------+
+                            |
+                            v
+                    DUPLICATE ENGINE
+                    pHash + Embeddings
+                            |
+                            v
+                    CLAIM MATCHING
+             What was claimed vs. what
+                  the evidence shows
+                            |
+                            v
+                     EVIDENCE GRAPH
+                            |
+                            v
+                     FUSION ENGINE
+                            |
+                +-----------+-----------+
+                |                       |
+                v                       v
+         INTEGRITY SCORE            RISK SCORE
+                |                       |
+                +-----------+-----------+
+                            |
+                            v
+                     EXPLAINABILITY
+                       "Why flagged?"
+                            |
+                            v
+                      HUMAN REVIEW
+                            |
+             +--------------+--------------+
+             |              |              |
+             v              v              v
+          APPROVE        REJECT       FIELD INSPECTION
+                            |
+                            v
+                       AUDIT LOG
+                            |
+                            v
+                         ARCHIVE
+
+
+Evidence lifecycle:
+
+CAPTURE
+  -> UPLOAD
+  -> INGEST
+  -> VALIDATE
+  -> HASH
+  -> EXTRACT METADATA
+  -> ANALYZE
+  -> CORRELATE
+  -> SCORE
+  -> REVIEW
+  -> DECISION
+  -> AUDIT
+  -> ARCHIVE
+
+============================================================
+3. PHOTO ANALYSIS FLOW
+============================================================
+
+Example claim:
+
+"100m road resurfacing completed."
+
+Uploaded evidence:
+road_after.jpg
+
+STEP 1 - INGESTION
+The backend receives the evidence and associates it with:
+- Project
+- Activity
+- Claim
+- Uploader
+
+STEP 2 - FILE VALIDATION
+Check:
+- File format
+- MIME type
+- File size
+- Corruption
+- Required metadata
+- Duplicate upload
+
+STEP 3 - SHA-256
+Generate a cryptographic hash for the received file.
+
+Important:
+SHA-256 proves that the received file has not changed after
+ingestion. It does NOT prove that the original image is genuine.
+
+STEP 4 - METADATA
+Extract:
+- GPS latitude
+- GPS longitude
+- GPS accuracy
+- Capture time
+- Timezone
+- Camera manufacturer
+- Camera model
+- Orientation
+- Software metadata
+- Image dimensions
+
+STEP 5 - GEO ANALYSIS
+Check:
+- Is the image inside the project geofence?
+- How far is it from the registered location?
+- Is GPS accuracy reasonable?
+- Are multiple images spatially consistent?
+
+STEP 6 - TEMPORAL ANALYSIS
+Check:
+- Is the timestamp inside the project/activity period?
+- Is the sequence logical?
+- Are there duplicate timestamps?
+- Is there impossible travel?
+
+STEP 7 - DUPLICATE ANALYSIS
+Three useful layers:
+
+A. SHA-256
+Exact duplicate detection.
+
+B. Perceptual hashing (pHash)
+Detects:
+- Resized images
+- Compressed images
+- Slightly modified images
+- Minor crops
+
+C. Image embeddings
+Detects semantically/visually similar historical evidence.
+
+STEP 8 - VISION ANALYSIS
+Possible tasks:
+- Object detection
+- Image quality analysis
+- Scene classification
+- Image similarity
+- Before/after change detection
+
+STEP 9 - CLAIM MATCHING
+Compare the claim with the visible evidence.
+
+Example:
+Claim: "10 solar street lights installed."
+
+Expected:
+- Poles
+- Lights
+- Installation context
+- Appropriate location
+- Completion evidence
+
+STEP 10 - EVIDENCE GRAPH
+Connect:
+Claim
+Photo
+GPS
+Time
+Vision results
+Historical matches
+Other projects
+Documents
+
+STEP 11 - FUSION ENGINE
+Combine all independent signals.
+
+Example:
+
+GPS consistency          94
+Temporal consistency     91
+Duplicate risk            2
+Visual consistency       88
+Metadata integrity       83
+Claim consistency        86
+Completeness            100
+
+STEP 12 - OUTPUT
+
+Evidence Integrity: 89/100
+Risk: LOW
+
+OR, if multiple anomalies exist:
+
+Risk: HIGH
+
+Why flagged:
+1. 94.7% visual similarity with previous evidence
+2. GPS differs from registered site
+3. Timestamp conflicts with activity timeline
+4. Claim is weakly supported
+
+Recommended action:
+Manual / field verification
+
+============================================================
+4. CORE MODEL / CORE ARCHITECTURE
+============================================================
+
+The system should NOT depend on one giant AI model.
+
+The architecture uses specialized components:
+
+                    EVIDENCE
+                        |
+        +---------------+---------------+
+        |               |               |
+      VISION           GEO             TIME
+        |               |               |
+     Models            Rules           Rules
+        |               |               |
+        +---------------+---------------+
+                        |
+                  DUPLICATE SEARCH
+                        |
+                  CLAIM MATCHING
+                        |
+                  EVIDENCE GRAPH
+                        |
+                  FUSION ENGINE
+                        |
+                  RISK / SCORE
+                        |
+                  HUMAN DECISION
+
+The individual detectors are replaceable.
+
+THE PRODUCT CORE IS:
+
+1. Evidence Graph
+2. Fusion Engine
+
+The strongest differentiator is:
+
+Evidence Graph
++
+Cross-Project Correlation
++
+Explainable Multi-Signal Verification
+
+NOT simply:
+"AI photo verification."
+
+============================================================
+5. EVIDENCE GRAPH
+============================================================
+
+Instead of treating photographs as isolated files, PoA treats
+evidence as connected, auditable objects.
+
+Example:
+
+PROJECT
+  |
+ACTIVITY
+  |
+  +---- CLAIM
+  |
+  +---- PHOTO
+          |
+          +---- GPS
+          |
+          +---- TIME
+          |
+          +---- VISION
+          |
+          +---- SIMILAR EVIDENCE
+                    |
+                    +---- OTHER PROJECT
+
+Relationship types:
+
+- BELONGS_TO
+- SUPPORTS
+- CONTRADICTS
+- SIMILAR_TO
+- DUPLICATE_OF
+- CAPTURED_AT
+- CAPTURED_BEFORE
+- CAPTURED_AFTER
+- DERIVED_FROM
+- REQUIRES
+- CORROBORATES
+
+This allows cross-project evidence investigation.
+
+Example:
+
+New image
+  ->
+Embedding
+  ->
+94.7% similar to old evidence
+  ->
+Old evidence belongs to PRJ-1832
+  ->
+Location is 31.8 km away
+  ->
+Cross-project evidence anomaly
+  ->
+HIGH RISK
+  ->
+Human review
+
+============================================================
+6. FUSION ENGINE
+============================================================
+
+No single detector should make the final decision.
+
+Possible signals:
+
+- GPS consistency
+- Temporal consistency
+- Duplicate risk
+- Authenticity/manipulation risk
+- Visual consistency
+- Claim consistency
+- Completeness
+- Metadata integrity
+
+Potential configurable MVP weights:
+
+GPS                  15%
+Temporal             10%
+Duplicate            20%
+Authenticity         15%
+Visual               20%
+Claim consistency    15%
+Completeness          5%
+
+Important:
+Weights should be validated for the selected domain.
+
+Integrity and Risk are separate concepts.
+
+INTEGRITY:
+How internally consistent is the evidence?
+
+RISK:
+How much attention should the evidence receive?
+
+Example:
+
+Integrity: 76/100
+Risk: HIGH
+
+Low evidence quality is not automatically fraud.
+
+============================================================
+7. AI / ML COMPONENTS
+============================================================
+
+A. IMAGE EMBEDDING MODEL
+
+Pipeline:
+
+Image
+  ->
+Embedding Model
+  ->
+Vector
+  ->
+pgvector
+  ->
+Nearest-neighbor search
+
+Purpose:
+Find visually/semantically similar evidence across historical data.
+
+B. PERCEPTUAL HASHING
+
+Pipeline:
+
+Image
+  ->
+pHash
+  ->
+Similarity
+  ->
+Near-duplicate detection
+
+Purpose:
+Detect resized, compressed, cropped or slightly modified versions.
+
+C. OBJECT DETECTION
+
+Example:
+Claim = "Solar street lights installed"
+
+Model detects:
+- Pole
+- Street light
+- Installation context
+
+D. BEFORE / AFTER COMPARISON
+
+BEFORE
+  +
+AFTER
+  ->
+Comparison
+  ->
+Changed regions
+  ->
+Change confidence
+
+Possible analysis:
+- Common scene
+- Relevant regions
+- Objects
+- Structural changes
+- Textures
+- Damage state
+- Construction stage
+
+E. IMAGE QUALITY
+
+Detect:
+- Blur
+- Darkness
+- Overexposure
+- Obstruction
+- Low resolution
+- Extreme angle
+- Irrelevant framing
+
+F. LLM
+
+Good uses:
+- Claim extraction
+- Report summarization
+- Reviewer assistance
+- Natural-language investigation
+- Explanation generation
+
+Bad use:
+Do NOT simply ask an LLM:
+"Is this photograph real?"
+
+The core verification engine should rely on deterministic
+rules and vision-based signals.
+
+============================================================
+8. TECH STACK
+============================================================
+
+FRONTEND
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+
+BACKEND
+- Python
+- FastAPI
+
+DATABASE
+- PostgreSQL
+- PostGIS
+- pgvector
+
+AI / COMPUTER VISION
+- PyTorch
+- OpenCV
+- Lightweight object detection model
+- Image embedding model
+
+QUEUE
+- Redis
+
+FILE STORAGE
+- S3-compatible object storage
+
+AUTHENTICATION
+- OAuth2
+- OpenID Connect (OIDC)
+
+Recommended architecture:
+
+                    NEXT.JS
+                       |
+                       v
+                   FASTAPI
+                       |
+          +------------+------------+
+          |            |            |
+          v            v            v
+     PostgreSQL      Redis       Object Storage
+     PostGIS         Queue
+     pgvector           |
+                         v
+                    AI Workers
+                         |
+             +-----------+-----------+
+             |           |           |
+           Vision       Geo       Duplicate
+           Worker      Worker       Worker
+             |           |           |
+             +-----------+-----------+
+                         |
+                         v
+                    Fusion Engine
+                         |
+                         v
+                    Analysis DB
+                         |
+                         v
+                    Next.js UI
+
+============================================================
+9. RECOMMENDED REPOSITORY
+============================================================
+
+proof-of-action/
+|
++-- apps/
+|   +-- web/
+|   +-- mobile/
+|
++-- services/
+|   +-- api/
+|   +-- analysis/
+|   +-- duplicate/
+|   +-- vision/
+|   +-- geospatial/
+|   +-- reporting/
+|
++-- packages/
+|   +-- schemas/
+|   +-- rules/
+|   +-- sdk/
+|
++-- infrastructure/
++-- datasets/
++-- models/
++-- docs/
++-- tests/
+
+============================================================
+10. DATABASE CORE
+============================================================
+
+Main entities:
+
+- User
+- Organization
+- Program
+- Project
+- Activity
+- Claim
+- Evidence
+- EvidenceMetadata
+- EvidenceAnalysis
+- EvidenceRelation
+- EvidenceScore
+- Anomaly
+- Review
+- ReviewDecision
+- FieldInspection
+- AuditEvent
+- Integration
+- APIKey
+- ModelVersion
+
+Evidence fields:
+
+- id
+- project_id
+- activity_id
+- uploaded_by
+- file_uri
+- sha256
+- mime_type
+- size
+- captured_at
+- latitude
+- longitude
+- gps_accuracy
+- source_type
+- status
+- created_at
+
+Analysis fields:
+
+- evidence_id
+- model_version
+- quality_score
+- duplicate_score
+- manipulation_score
+- visual_consistency_score
+- geo_score
+- temporal_score
+- claim_score
+- overall_score
+- created_at
+
+Anomaly fields:
+
+- project_id
+- evidence_id
+- type
+- severity
+- confidence
+- description
+- status
+- created_at
+- resolved_at
+- resolved_by
+
+============================================================
+11. API STRUCTURE
+============================================================
+
+Core endpoints:
+
+POST /api/projects
+GET  /api/projects/{id}
+
+POST /api/evidence
+GET  /api/evidence/{id}
+
+POST /api/evidence/{id}/analyze
+GET  /api/evidence/{id}/analysis
+
+POST /api/evidence/search-similar
+
+POST /api/reviews
+GET  /api/reviews/queue
+
+POST /api/field-inspections
+
+GET /api/audit/events
+
+Possible webhooks:
+
+evidence.uploaded
+evidence.analysis.completed
+evidence.flagged
+evidence.reviewed
+project.completed
+field.inspection.completed
+
+The platform should sit beside existing monitoring systems rather
+than replacing them.
+
+Existing Monitoring System
+        |
+       API
+        |
+        v
+Proof-of-Action
+        |
+Evidence Analysis
+        |
+        v
+Result API
+        |
+        v
+Existing Dashboard
+
+============================================================
+12. APP DEVELOPMENT TIMELINE - 6 WEEKS
+============================================================
+
+WEEK 1 - FOUNDATION
+
+Backend:
+- FastAPI setup
+- PostgreSQL setup
+- Database schema
+- Project API
+- Authentication
+- Object storage
+
+Frontend:
+- Next.js setup
+- Dashboard shell
+- Login
+- Project creation
+- Evidence upload UI
+
+Milestone:
+
+Login
+  ->
+Create Project
+  ->
+Upload Evidence
+  ->
+Evidence Stored
+
+
+WEEK 2 - EVIDENCE INTELLIGENCE FOUNDATION
+
+Build:
+- EXIF extraction
+- GPS extraction
+- Timestamp extraction
+- SHA-256 hashing
+- GPS validation
+- Project geofence
+- Evidence timeline
+- Basic dashboard
+
+Milestone:
+
+Upload
+  ->
+Hash
+  ->
+Metadata
+  ->
+GPS validation
+  ->
+Timeline
+
+
+WEEK 3 - DUPLICATE INTELLIGENCE
+
+Build:
+- Perceptual hashing
+- Image embeddings
+- pgvector
+- Vector search
+- Duplicate detection
+- Cross-project similarity
+
+Milestone:
+
+New Image
+  ->
+Embedding
+  ->
+Historical Search
+  ->
+Top Similar Evidence
+  ->
+Potential Duplicate / Cross-Project Anomaly
+
+
+WEEK 4 - CORE AI + SCORING
+
+Build:
+- Object detection
+- Before/after comparison
+- Visual consistency
+- Claim matching
+- Anomaly engine
+- Integrity scoring
+- Risk scoring
+
+Milestone:
+
+Claim
++
+Evidence
++
+GPS
++
+Time
++
+Vision
++
+Historical Matches
+  ->
+Evidence Graph
+  ->
+Fusion Engine
+  ->
+Risk Score
+
+
+WEEK 5 - HUMAN REVIEW
+
+Build:
+- Review queue
+- Evidence viewer
+- Before/after viewer
+- Map
+- Similar evidence viewer
+- "Why flagged?" panel
+- Approve
+- Reject
+- Request resubmission
+- Request field inspection
+- Escalate
+- Notes
+- AI override
+- Audit logs
+- Report generation
+
+Milestone:
+
+Risk Dashboard
+  ->
+Flagged Evidence
+  ->
+Why Flagged?
+  ->
+Evidence Viewer
+  ->
+Similar Evidence
+  ->
+Map
+  ->
+Timeline
+  ->
+Reviewer Decision
+
+
+WEEK 6 - SIH HARDENING + DEMO
+
+Build:
+- Benchmark dataset
+- Accuracy testing
+- Threshold calibration
+- Performance optimization
+- Error handling
+- Live demo
+- SIH presentation
+- Documentation
+
+Demo dataset should include:
+
+VALID
+EXACT_DUPLICATE
+CROPPED_DUPLICATE
+RESIZED_DUPLICATE
+REENCODED_DUPLICATE
+WRONG_LOCATION
+WRONG_TIME
+EDITED_IMAGE
+IRRELEVANT_IMAGE
+INCONSISTENT_BEFORE_AFTER
+VALID_SIMILAR_SCENE
+
+============================================================
+13. SIH MVP - WHAT TO ACTUALLY BUILD
+============================================================
+
+Do NOT attempt the entire long-term platform for the first prototype.
+
+Build these 12 core features:
+
+1. Project creation
+2. Evidence upload
+3. Metadata extraction
+4. GPS validation
+5. Exact duplicate detection
+6. Perceptual duplicate detection
+7. Image embeddings
+8. Before/after comparison
+9. Evidence scoring
+10. Explainable anomaly dashboard
+11. Reviewer workflow
+12. Audit log + report generation
+
+The MVP should focus heavily on the killer workflow:
+
+UPLOAD
+  ->
+ANALYZE
+  ->
+COMPARE
+  ->
+CORRELATE
+  ->
+FLAG
+  ->
+EXPLAIN
+  ->
+HUMAN REVIEW
+
+============================================================
+14. KILLER SIH DEMO
+============================================================
+
+TEST 1 - GENUINE EVIDENCE
+
+Upload:
+Before
+During
+After
+
+Result:
+
+Integrity: 92/100
+Risk: LOW
+
+
+TEST 2 - REUSED PHOTOGRAPH
+
+Upload previously used image.
+
+Result:
+
+94.7% similarity
+Previous project: PRJ-1832
+HIGH DUPLICATE RISK
+
+
+TEST 3 - WRONG LOCATION
+
+Photo from another site.
+
+Result:
+
+GPS inconsistency
+Distance: 31.8 km
+HIGH RISK
+
+
+TEST 4 - CLAIM MISMATCH
+
+Claim:
+"Road repaired."
+
+Evidence:
+Unrelated building.
+
+Result:
+
+LOW CLAIM-EVIDENCE CONSISTENCY
+
+
+TEST 5 - EXPLAINABILITY
+
+Click:
+
+"Why flagged?"
+
+System shows every contributing signal.
+
+============================================================
+15. HUMAN-IN-THE-LOOP
+============================================================
+
+The system must NOT automatically make irreversible fraud decisions.
+
+Flow:
+
+Evidence
+  ->
+AI Analysis
+  ->
+Risk Score
+  ->
+LOW ---------------- HIGH
+ |                    |
+ v                    v
+Continue           Human Review
+                       |
+                       v
+                 Field Inspection
+                       |
+                       v
+                  Final Decision
+
+Reviewer can:
+- Approve
+- Reject
+- Request resubmission
+- Request field inspection
+- Flag
+- Escalate
+- Add note
+- Attach evidence
+- Override AI
+
+Every override must require a reason and be audited.
+
+============================================================
+16. IMPORTANT TECHNICAL RULES
+============================================================
+
+RULE 1:
+Similarity does NOT automatically mean fraud.
+
+Two legitimate projects can photograph the same building.
+
+RULE 2:
+GPS alone is NOT proof.
+
+GPS should be treated as one evidence signal.
+
+RULE 3:
+AI output must include confidence.
+
+Every finding should contain:
+- Finding
+- Confidence
+- Severity
+- Supporting evidence
+
+RULE 4:
+Model versions must be stored.
+
+Preserve:
+- Model name
+- Model version
+- Weights hash
+- Configuration
+- Thresholds
+- Analysis timestamp
+
+RULE 5:
+Every AI decision must be reproducible.
+
+Preserve:
+- Input
+- Metadata
+- Model
+- Model version
+- Configuration
+- Thresholds
+- Matches
+- Rules
+- Output
+
+RULE 6:
+If AI analysis fails, do not delete evidence.
+
+Store it, retry analysis, and send repeated failures to manual review.
+
+============================================================
+17. SECURITY
+============================================================
+
+Required:
+
+- TLS
+- Encryption at rest
+- RBAC
+- API authentication
+- Audit logs
+- Signed URLs
+- Malware scanning
+- Rate limiting
+- Secrets management
+- Backups
+- Disaster recovery
+
+Privacy controls:
+
+- Configurable face blurring
+- Access controls
+- Retention policies
+- Data minimization
+- Restricted exports
+
+============================================================
+18. FINAL ARCHITECTURE
+============================================================
+
+                         CLAIM
+                           |
+                  +--------+--------+
+                  |        |        |
+                 GPS     PHOTO     TIME
+                  |        |        |
+                  |      VISION     |
+                  |        |        |
+                  +--------+--------+
+                           |
+                  HISTORICAL MATCHES
+                           |
+                    OTHER PROJECTS
+                           |
+                    EVIDENCE GRAPH
+                           |
+                    FUSION ENGINE
+                           |
+                     RISK / SCORE
+                           |
+                    EXPLAINABILITY
+                           |
+                    HUMAN DECISION
+
+
+The core differentiator is:
+
+EVIDENCE GRAPH
++
+CROSS-PROJECT CORRELATION
++
+EXPLAINABLE MULTI-SIGNAL VERIFICATION
+
+============================================================
+19. FINAL PRODUCT POSITIONING
+============================================================
+
+Problem:
+Large-scale field programs generate huge volumes of evidence,
+but manually verifying whether evidence is genuine, consistent,
+complete and relevant does not scale.
+
+Solution:
+An AI-assisted evidence intelligence layer that correlates:
+- Visual evidence
+- Metadata
+- GPS
+- Time
+- Claims
+- Historical submissions
+- Project relationships
+
+to generate explainable integrity and risk signals.
+
+Innovation:
+Treat evidence as a connected, auditable graph rather than
+isolated photographs.
+
+Human Safety:
+AI prioritizes and explains.
+Humans make consequential decisions.
+
+Do NOT claim:
+- 100% fraud detection
+- AI proves government work
+- Elimination of field officers
+- An unfoolable detector
+- Every image can be authenticated
+
+Use:
+"We detect anomalies and prioritize evidence for human verification."
+
+============================================================
+20. ONE-LINE TECHNICAL SUMMARY
+============================================================
+
+Next.js frontend
++
+FastAPI backend
++
+PostgreSQL/PostGIS/pgvector
++
+Redis asynchronous workers
++
+PyTorch/OpenCV vision pipeline
++
+pHash + image embeddings
++
+Evidence Graph
++
+Multi-Signal Fusion Engine
++
+Explainable Risk Scoring
++
+Human-in-the-Loop Review
+
+This is the technical backbone of Proof-of-Action.

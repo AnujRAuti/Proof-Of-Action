@@ -7,50 +7,76 @@ import { useI18n } from '@/lib/i18n/context';
 import { useApp } from '@/lib/store/app-context';
 import {
   Users,
-  Smartphone,
-  ShieldCheck,
-  ArrowRight,
-  CheckCircle2,
   Lock,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  KeyRound,
+  ShieldCheck,
 } from 'lucide-react';
 
 export default function CitizenLoginPage() {
   const router = useRouter();
   const { t } = useI18n();
-  const { loginUser } = useApp();
+  const { setAuthenticatedUser, addToast } = useApp();
 
-  const [phone, setPhone] = useState('');
-  const [phoneError, setPhoneError] = useState('');
-  const [step, setStep] = useState<'PHONE' | 'OTP' | 'AADHAAR'>('PHONE');
-  const [otp, setOtp] = useState('');
-  const [aadhaarLast4, setAadhaarLast4] = useState('4821');
+  const [identifier, setIdentifier] = useState('citizen.demo@example.com');
+  const [password, setPassword] = useState('Citizen@2026!');
+  const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSendOtp = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setPhoneError('');
-    const digits = phone.replace(/\D/g, '');
-    if (digits.length < 10) {
-      setPhoneError('Please enter a valid 10-digit mobile number');
+    setErrorMessage('');
+
+    if (!identifier.trim()) {
+      setErrorMessage('Citizen email or phone number is required.');
       return;
     }
-    setStep('OTP');
-  };
+    if (!password) {
+      setErrorMessage('Password is required.');
+      return;
+    }
 
-  const handleVerifyOtp = (e: React.FormEvent) => {
-    e.preventDefault();
-    setStep('AADHAAR');
-  };
+    setIsLoading(true);
 
-  const handleCompleteAadhaar = (e: React.FormEvent) => {
-    e.preventDefault();
-    loginUser('CITIZEN', {
-      name: 'Aarav Deshmukh',
-      phone: phone.startsWith('+91') ? phone : `+91 ${phone}`,
-      isAadhaarVerified: true,
-      district: 'Pune',
-      state: 'Maharashtra',
-    });
-    router.push('/citizen');
+    try {
+      const isEmail = identifier.includes('@');
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: isEmail ? identifier.trim() : undefined,
+          phone: !isEmail ? identifier.trim() : undefined,
+          password,
+          requiredRole: 'CITIZEN',
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.authenticated) {
+        setErrorMessage(data?.error?.message || 'Invalid citizen credentials or password.');
+        setIsLoading(false);
+        return;
+      }
+
+      setAuthenticatedUser(data.user);
+
+      addToast({
+        title: `Welcome, ${data.user.name}`,
+        description: 'Authenticated as CITIZEN. Loading citizen dashboard...',
+        type: 'success',
+      });
+
+      router.push('/citizen');
+    } catch (err) {
+      console.error('Citizen login error:', err);
+      setErrorMessage('Unable to connect to authentication service.');
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -69,132 +95,108 @@ export default function CitizenLoginPage() {
               Citizen Portal Sign In
             </h1>
             <p className="text-xs text-ink-secondary">
-              नागरिक पोर्टल • OTP &amp; Mock Aadhaar Verification
+              नागरिक पोर्टल • Public Project &amp; Grievance Tracking
             </p>
           </div>
 
-          {/* Progress Step Indicator */}
-          <div className="flex items-center justify-between text-[11px] px-2 text-ink-muted border-b border-border-hairline pb-3">
-            <span className={step === 'PHONE' ? 'font-bold text-saffron-deep' : 'text-india-green'}>
-              1. Mobile
-            </span>
-            <span>→</span>
-            <span className={step === 'OTP' ? 'font-bold text-saffron-deep' : step === 'AADHAAR' ? 'text-india-green' : ''}>
-              2. OTP
-            </span>
-            <span>→</span>
-            <span className={step === 'AADHAAR' ? 'font-bold text-saffron-deep' : ''}>
-              3. Aadhaar (Demo)
-            </span>
-          </div>
+          {/* Error Message Box */}
+          {errorMessage && (
+            <div className="p-3 bg-risk-critical/10 border border-risk-critical/30 rounded-xl flex items-start gap-2.5 text-xs text-risk-critical animate-page-enter">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <div className="flex-1 font-medium">{errorMessage}</div>
+            </div>
+          )}
 
-          {/* Step 1: Phone */}
-          {step === 'PHONE' && (
-            <form onSubmit={handleSendOtp} className="space-y-4 text-xs">
-              <div className="space-y-1">
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+            <div className="space-y-1">
+              <label className="font-bold text-ink-primary block">
+                Citizen Email or Mobile Number (10 Digits):
+              </label>
+              <input
+                type="text"
+                value={identifier}
+                onChange={(e) => {
+                  setIdentifier(e.target.value);
+                  if (errorMessage) setErrorMessage('');
+                }}
+                placeholder="citizen.demo@example.com or 9823011223"
+                className="w-full px-3.5 py-2.5 rounded-lg bg-surface-sunken border border-border-hairline text-ink-primary font-mono text-sm focus:outline-none focus:border-saffron"
+                required
+                disabled={isLoading}
+                autoFocus
+              />
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
                 <label className="font-bold text-ink-primary block">
-                  Mobile Phone Number (10 Digits):
+                  Password:
                 </label>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-[11px] text-ink-muted hover:text-ink-primary flex items-center gap-1"
+                >
+                  {showPassword ? (
+                    <>
+                      <EyeOff className="w-3 h-3" />
+                      <span>Hide</span>
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="w-3 h-3" />
+                      <span>Show</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              <div className="relative">
                 <input
-                  type="tel"
-                  value={phone}
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
                   onChange={(e) => {
-                    setPhone(e.target.value);
-                    if (phoneError) setPhoneError('');
+                    setPassword(e.target.value);
+                    if (errorMessage) setErrorMessage('');
                   }}
-                  placeholder="+91 98765 43210"
-                  className="w-full px-3.5 py-2.5 rounded-lg bg-surface-sunken border border-border-hairline text-ink-primary font-mono text-sm focus:outline-none focus:border-saffron"
+                  placeholder="Enter citizen password"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-surface-sunken border border-border-hairline text-ink-primary text-sm focus:outline-none focus:border-saffron pr-10"
                   required
-                  autoFocus
+                  disabled={isLoading}
                 />
-                {phoneError && (
-                  <p className="text-[11px] text-risk-critical font-medium mt-1">
-                    {phoneError}
-                  </p>
-                )}
+                <Lock className="w-4 h-4 text-ink-muted absolute right-3 top-3 pointer-events-none" />
               </div>
+            </div>
 
-              <p className="text-[11px] text-ink-muted">
-                A 6-digit verification code will be sent to your mobile phone number.
+            <div className="p-3 bg-surface-sunken border border-border-hairline rounded-xl text-[11px] text-ink-secondary space-y-1">
+              <div className="flex items-center gap-1.5 font-bold text-ink-primary">
+                <KeyRound className="w-3.5 h-3.5 text-saffron-deep dark:text-saffron" />
+                <span>Demo Citizen Account:</span>
+              </div>
+              <p className="text-[10px] text-ink-muted">
+                Email: <code className="font-mono font-bold">citizen.demo@example.com</code> • Password: <code className="font-mono font-bold">Citizen@2026!</code>
               </p>
+            </div>
 
-              <button
-                type="submit"
-                className="w-full py-3 rounded-xl bg-saffron text-ink-primary font-bold text-xs hover:bg-saffron-deep transition-colors shadow-subtle flex items-center justify-center gap-2"
-              >
-                <span>Send One-Time Password (OTP)</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </form>
-          )}
-
-          {/* Step 2: OTP */}
-          {step === 'OTP' && (
-            <form onSubmit={handleVerifyOtp} className="space-y-4 text-xs">
-              <div className="space-y-1.5 p-3.5 bg-saffron/10 border border-saffron/30 rounded-xl">
-                <div className="flex items-center justify-between">
-                  <label className="font-bold text-ink-primary block">
-                    Enter 6-Digit OTP:
-                  </label>
-                  <span className="text-[10px] font-mono text-india-green font-bold bg-surface px-2 py-0.5 rounded border">
-                    Demo OTP: 123456
-                  </span>
-                </div>
-                <input
-                  type="text"
-                  maxLength={6}
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  placeholder="123456"
-                  className="w-full px-3.5 py-2.5 rounded-lg bg-surface border border-border-hairline text-ink-primary font-mono text-lg tracking-widest text-center focus:outline-none focus:border-saffron"
-                  required
-                  autoFocus
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full py-3 rounded-xl bg-saffron text-ink-primary font-bold text-xs hover:bg-saffron-deep transition-colors shadow-subtle flex items-center justify-center gap-2"
-              >
-                <span>Verify OTP &amp; Proceed</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </form>
-          )}
-
-          {/* Step 3: Aadhaar Verification (Demo Flow) */}
-          {step === 'AADHAAR' && (
-            <form onSubmit={handleCompleteAadhaar} className="space-y-4 text-xs">
-              <div className="p-3.5 bg-india-green/10 border border-india-green/30 rounded-xl space-y-2">
-                <div className="flex items-center gap-2 font-bold text-india-green text-xs">
-                  <ShieldCheck className="w-4 h-4" />
-                  <span>Mock Aadhaar Resident Verification (Demo)</span>
-                </div>
-                <p className="text-[11px] text-ink-secondary leading-relaxed">
-                  For prototype evaluation, an instant demo UIDAI verification token is simulated. Full Aadhaar numbers are never stored or exposed.
-                </p>
-                <div className="font-mono text-xs font-bold text-ink-primary bg-surface p-2 rounded border border-border-hairline text-center">
-                  Aadhaar: XXXX XXXX {aadhaarLast4}
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                className="w-full py-3 rounded-xl bg-india-green text-surface font-bold text-xs hover:bg-india-green/90 transition-colors shadow-subtle flex items-center justify-center gap-2"
-              >
-                <span>Complete Verification &amp; Enter Citizen Portal</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </form>
-          )}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className={`w-full py-3 rounded-xl bg-saffron text-ink-primary font-bold text-xs hover:bg-saffron-deep transition-colors shadow-subtle flex items-center justify-center gap-2 ${
+                isLoading ? 'opacity-70 cursor-not-allowed' : ''
+              }`}
+            >
+              <span>{isLoading ? 'Verifying with DB...' : 'Sign In to Citizen Portal'}</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </form>
 
           {/* Footer */}
           <div className="pt-4 border-t border-border-hairline flex items-center justify-between text-xs text-ink-muted">
-            <Link href="/" className="hover:text-ink-primary">
-              ← Return Home
+            <Link href="/login" className="hover:text-ink-primary">
+              ← Other Roles
             </Link>
             <Link href="/signup" className="hover:text-ink-primary font-semibold text-saffron-deep dark:text-saffron">
-              Create New Account →
+              Create Account →
             </Link>
           </div>
         </div>

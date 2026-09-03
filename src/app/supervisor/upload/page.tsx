@@ -1,13 +1,11 @@
 'use client';
 
-import React, { useState, useRef, Suspense } from 'react';
+import React, { useEffect, useState, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useI18n } from '@/lib/i18n/context';
 import { useApp } from '@/lib/store/app-context';
-import { getProjectImage } from '@/lib/data/mock-dataset';
 import {
-  Camera,
   MapPin,
   CheckCircle2,
   Upload,
@@ -39,12 +37,14 @@ function SupervisorUploadWizardContent() {
   );
 
   const [step, setStep] = useState<number>(preselectedId ? 2 : 1);
-  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
-  const [isCapturing, setIsCapturing] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [voiceNote, setVoiceNote] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   // Simulation controls for testing duplicate detection & location mismatch
   const [simulateDuplicate, setSimulateDuplicate] = useState(false);
@@ -54,26 +54,34 @@ function SupervisorUploadWizardContent() {
 
   const activeProject = projects.find((p) => p.id === selectedProjectId) || projects[0];
 
-  const handleSnap = () => {
-    setIsCapturing(true);
-    setTimeout(() => {
-      setCapturedPhoto(activeProject?.imageUrl || getProjectImage(activeProject?.id));
-      setIsCapturing(false);
-      setStep(3);
-    }, 450);
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setCapturedPhoto(event.target?.result as string);
-        setStep(3);
-      };
-      reader.readAsDataURL(file);
+    if (!file) {
+      setSelectedFile(null);
+      setPreviewUrl(null);
+      setUploadError(null);
+      return;
     }
+
+    if (!file.type.startsWith('image/') || file.size <= 0 || file.size > 10 * 1024 * 1024) {
+      setSelectedFile(null);
+      setPreviewUrl(null);
+      setUploadError('Invalid image file. Please select a valid photo up to 10 MB.');
+      e.target.value = '';
+      return;
+    }
+
+    setSelectedFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+    setUploadError(null);
+    setStep(3);
   };
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
 
   const handleToggleVoice = () => {
     if (isRecording) {
@@ -92,15 +100,33 @@ function SupervisorUploadWizardContent() {
     }
   };
 
-  const handleFinalSubmit = () => {
-    setIsSubmitted(true);
-    addToast({
-      title: isOffline ? 'ऑफलाइन सुरक्षित (Saved Offline)' : 'साक्ष्य सफलता से अपलोड (Uploaded)',
-      description: isOffline
-        ? 'Report saved in device queue. Will upload automatically when online.'
-        : `Evidence submitted for project ${activeProject.id}.`,
-      type: 'success',
-    });
+  const handleFinalSubmit = async () => {
+    if (!selectedFile || !activeProject || isUploading) return;
+
+    setIsUploading(true);
+    setUploadError(null);
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    formData.append('projectId', activeProject.id);
+    formData.append('stage', 'after');
+    if (voiceNote) formData.append('note', voiceNote);
+
+    try {
+      const response = await fetch('/api/evidence', { method: 'POST', body: formData });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Upload failed. Please try again.');
+
+      setIsSubmitted(true);
+      addToast({
+        title: 'साक्ष्य सफलता से अपलोड (Uploaded)',
+        description: `Evidence submitted for project ${activeProject.id}.`,
+        type: 'success',
+      });
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : 'Upload failed. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -208,63 +234,42 @@ function SupervisorUploadWizardContent() {
         </div>
       )}
 
-      {/* STEP 2: CAPTURE PHOTO */}
+      {/* STEP 2: UPLOAD PHOTO */}
       {step === 2 && !isSubmitted && (
         <div className="bg-surface border-2 border-border-hairline rounded-2xl p-5 sm:p-6 shadow-subtle space-y-4 animate-page-enter">
           <div className="space-y-1">
             <span className="text-[10px] uppercase font-bold text-ink-muted block">
-              Step 2: Point &amp; Snap (फोटो खींचें)
+              Step 2: Upload Photo (फोटो अपलोड करें)
             </span>
             <h2 className="font-serif font-bold text-base sm:text-lg text-ink-primary">
-              Stand where you can see the whole work area
+              Select a photo from your computer
             </h2>
             <p className="text-xs text-ink-secondary">
-              कैमरा ऐसे रखें कि पूरी सड़क या जल आपूर्ति का ढांचा स्पष्ट दिखाई दे।
+              Choose a real project photo to continue. Camera capture is not used here.
             </p>
           </div>
 
-          <div className="bg-ink-primary rounded-2xl aspect-[4/3] relative flex items-center justify-center text-surface border-2 border-border-hairline overflow-hidden select-none">
-            <div className="text-center p-6 space-y-2">
-              <Camera className="w-10 h-10 text-surface/80 mx-auto" />
-              <span className="text-xs font-bold block">Live Camera Viewport</span>
-              <span className="text-[11px] text-surface/70 block">
-                Tap the circular button below to take photo or choose from gallery
+          <div className="bg-surface-sunken rounded-2xl aspect-[4/3] relative flex items-center justify-center border-2 border-dashed border-border-hairline overflow-hidden select-none">
+            <div className="text-center p-6 space-y-3">
+              <Upload className="w-10 h-10 text-saffron-deep mx-auto" />
+              <span className="text-xs font-bold text-ink-primary block">No photo selected</span>
+              <span className="text-[11px] text-ink-secondary block">
+                Select a JPEG, PNG, or WebP image from your computer.
               </span>
-            </div>
-
-            <div className="absolute bottom-3 inset-x-3 flex items-center justify-between">
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="px-3 py-2 rounded-lg bg-surface/20 text-surface text-xs font-bold flex items-center gap-1.5 backdrop-blur-sm"
+                className="mx-auto px-3 py-2 rounded-lg bg-saffron text-ink-primary text-xs font-bold flex items-center gap-1.5"
               >
                 <Upload className="w-4 h-4" />
-                <span>Gallery</span>
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={handleFileChange}
-              />
-
-              <button
-                onClick={handleSnap}
-                disabled={isCapturing}
-                className="w-14 h-14 rounded-full bg-saffron text-ink-primary border-4 border-surface flex items-center justify-center shadow-dropdown hover:scale-105 transition-transform"
-              >
-                <Camera className="w-6 h-6" />
-              </button>
-
-              <button
-                onClick={() => setStep(1)}
-                className="px-3 py-2 rounded-lg bg-surface/20 text-surface text-xs font-semibold backdrop-blur-sm"
-              >
-                Back
+                <span>Choose Photo</span>
               </button>
             </div>
+            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileChange} />
           </div>
+          {uploadError && <p className="text-xs text-risk-high" role="alert">{uploadError}</p>}
+          <button onClick={() => setStep(1)} className="w-full py-3 rounded-xl bg-surface border border-border-hairline text-xs font-semibold text-ink-secondary">
+            Back
+          </button>
         </div>
       )}
 
@@ -286,11 +291,7 @@ function SupervisorUploadWizardContent() {
           {/* Captured Preview */}
           <div className="relative rounded-xl overflow-hidden aspect-[16/9] bg-ink-primary border border-border-hairline">
             <img
-              src={
-                capturedPhoto ||
-                activeProject?.imageUrl ||
-                getProjectImage(activeProject?.id)
-              }
+              src={previewUrl || ''}
               alt="Captured evidence preview"
               className="w-full h-full object-cover"
             />
@@ -298,6 +299,12 @@ function SupervisorUploadWizardContent() {
               Fingerprint: 9f83...c491 • pHash: 8f3c7a19e0b4
             </div>
           </div>
+          {selectedFile && (
+            <div className="flex items-center justify-between text-xs text-ink-secondary">
+              <span className="font-semibold text-ink-primary truncate">{selectedFile.name}</span>
+              <span className="font-mono shrink-0 ml-3">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</span>
+            </div>
+          )}
 
           {/* Signal 1: Location Check (Section 10) */}
           <div
@@ -433,7 +440,7 @@ function SupervisorUploadWizardContent() {
               onClick={() => setStep(2)}
               className="px-4 py-3 rounded-xl bg-surface border border-border-hairline text-xs font-semibold text-ink-secondary"
             >
-              Retake Photo
+              Change Photo
             </button>
             <button
               onClick={() => setStep(4)}
@@ -547,12 +554,14 @@ function SupervisorUploadWizardContent() {
             </button>
             <button
               onClick={handleFinalSubmit}
-              className="flex-1 py-3.5 rounded-xl bg-india-green text-surface font-bold text-sm hover:opacity-90 transition-opacity shadow-subtle flex items-center justify-center gap-2"
+              disabled={!selectedFile || isUploading}
+              className="flex-1 py-3.5 rounded-xl bg-india-green text-surface font-bold text-sm hover:opacity-90 transition-opacity shadow-subtle flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <CheckCircle2 className="w-4 h-4" />
-              <span>Submit Evidence (साक्ष्य जमा करें)</span>
+              <span>{isUploading ? 'Uploading evidence...' : 'Submit Evidence (साक्ष्य जमा करें)'}</span>
             </button>
           </div>
+          {uploadError && <p className="text-xs text-risk-high" role="alert">{uploadError}</p>}
         </div>
       )}
 
@@ -592,7 +601,9 @@ function SupervisorUploadWizardContent() {
               onClick={() => {
                 setStep(1);
                 setIsSubmitted(false);
-                setCapturedPhoto(null);
+                setSelectedFile(null);
+                setPreviewUrl(null);
+                if (fileInputRef.current) fileInputRef.current.value = '';
                 setVoiceNote('');
               }}
               className="flex-1 py-3 rounded-xl bg-surface-sunken hover:bg-surface border border-border-hairline text-xs font-bold text-ink-primary"

@@ -117,7 +117,36 @@ export default function IngestionSandboxPage() {
     { title: '6. Multi-Signal Evidence Fusion Engine', desc: 'Synthesizing weighted integrity & explainable risk score...' },
   ];
 
-  const runPipeline = () => {
+  const runPipeline = async () => {
+    // The sandbox still animates the benchmark fixture for presentation use, but
+    // also exercises the same API boundary that the real uploader will use.
+    try {
+      const response = await fetch('/api/evidence', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          projectId: 'PRJ-DEMO-SANDBOX',
+          activityName: activeScenario.name,
+          stage: 'after',
+          capturedAt: new Date().toISOString(),
+          latitude: activeScenario.lat,
+          longitude: activeScenario.lng,
+          gpsAccuracyMeters: 12,
+          fileName: activeScenario.imageUrl.split('/').pop() ?? 'evidence.jpg',
+          mimeType: 'image/jpeg',
+          sizeBytes: 1024,
+        }),
+      });
+      if (!response.ok) throw new Error('Evidence API rejected the request');
+      const payload = (await response.json()) as { data?: { jobId?: string } };
+      if (payload.data?.jobId) {
+        // Keep the job ID available for the future real-time status indicator.
+        window.history.replaceState(null, '', `?job=${encodeURIComponent(payload.data.jobId)}`);
+      }
+    } catch {
+      // Keep the benchmark demo usable when the API is unavailable locally.
+    }
+
     setIsRunning(true);
     setPipelineStep(1);
 
@@ -362,4 +391,3 @@ export default function IngestionSandboxPage() {
     </div>
   );
 }
-

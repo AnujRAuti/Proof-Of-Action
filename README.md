@@ -1,110 +1,75 @@
-# Proof-of-Action
+# Proof-of-Action (EIIL)
 
-## Evidence Integrity & Intelligence Layer
+## Evidence Integrity & Intelligence Layer — Smart India Hackathon (SIH) 2026
 
-Proof-of-Action is a government-grade digital public infrastructure (DPI) interface for reviewing the integrity of public-works evidence. It brings geospatial, temporal, visual, metadata, and cross-project consistency signals into a single reviewer workflow.
+Proof-of-Action is a government-grade digital public infrastructure (DPI) platform that audits field evidence (photos, timestamps, GPS geofences, EXIF metadata, duplicate perceptual hashing) for public infrastructure schemes (PMGSY, Jal Jeevan Mission, Samagra Shiksha, PM-KUSUM).
 
-This repository currently contains a frontend prototype powered by a local mock dataset. It is intended for demonstrating the review experience, audit workflows, and evidence intelligence UI.
+---
 
-## Features
+## 🚀 Quick Start
 
-- Reviewer operations dashboard with integrity and risk summaries
-- Evidence review queue with approve, reject, and flag workflows
-- Evidence detail pages with anomaly signals, metadata, hashes, and similar matches
-- Evidence ingestion sandbox for simulating submission processing
-- Project, map, analytics, audit, comparison, and evidence views
-- Theme switching with light, dark, and system modes
-- English and Urdu language support, including RTL layout handling
-- Command palette, keyboard shortcuts, toast notifications, and responsive navigation
-
-## Tech Stack
-
-- Next.js 15 with the App Router
-- React 19 and TypeScript
-- Tailwind CSS
-- Lucide React icons
-- PostCSS and Autoprefixer
-- Local mock data and React context state
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18.18 or newer
+### 1. Prerequisites
+- Node.js 18.18+ or Node 20+
 - npm
 
-### Installation
-
+### 2. Install Dependencies
 ```bash
 npm install
 ```
 
-### Run the development server
+### 3. Initialize & Seed Database
+```bash
+# Push database schema to SQLite
+npx prisma db push
 
+# Seed demo users, 6 infrastructure projects, and sample evidence
+npm run seed
+```
+
+### 4. Run Development Server
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in a browser.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-### Production build
+---
 
+## 🔑 Demo Credentials
+
+See [`credentials.md`](./credentials.md) for full details.
+
+| Portal | Email / Identifier | Password | Role |
+| :--- | :--- | :--- | :--- |
+| **Reviewer Portal** | `reviewer.demo@example.com` | `Reviewer@2026!` | `REVIEWER` |
+| **Supervisor Portal** | `supervisor.demo@example.com` | `Supervisor@2026!` | `SUPERVISOR` |
+| **Citizen Portal** | `citizen.demo@example.com` | `Citizen@2026!` | `CITIZEN` |
+
+---
+
+## 🧪 Testing & Verification
+
+Run the automated authentication test suite:
+```bash
+node scripts/test-auth.js
+```
+
+Run full Next.js production build:
 ```bash
 npm run build
-npm run start
 ```
 
-## Available Scripts
+---
 
-| Command | Purpose |
-| --- | --- |
-| `npm run dev` | Start the Next.js development server |
-| `npm run build` | Create a production build |
-| `npm run start` | Serve the production build |
-| `npm run lint` | Run the configured lint command |
+## 🏗️ Architecture & Features
 
-## Application Routes
-
-| Route | Description |
-| --- | --- |
-| `/` | Reviewer operations dashboard |
-| `/queue` | Evidence review queue |
-| `/evidence/[id]` | Evidence detail and audit view |
-| `/ingest` | Evidence ingestion sandbox |
-| `/projects/[id]` | Project detail view |
-| `/projects` | Project listing |
-| `/map` | Geospatial evidence view |
-| `/analytics` | Audit analytics |
-| `/audit` | Audit activity and decisions |
-| `/compare` | Evidence comparison |
-| `/field` | Field operations view |
-| `/about` | Product information |
-| `/settings` | Application settings |
-| `/login` | Login screen |
-
-## Project Structure
-
-```text
-src/
-├── app/                    # App Router pages and global styles
-├── components/
-│   ├── layout/             # Header and sidebar navigation
-│   └── ui/                 # Shared interface components and overlays
-└── lib/
-    ├── data/               # Mock evidence and project data
-    ├── i18n/               # Translation context and language definitions
-    ├── store/              # Application state and reviewer actions
-    └── theme/              # Theme context and persistence
-```
-
-The `@/*` import alias maps to `src/*` and is configured in `tsconfig.json`.
-
-## Data and Scope
-
-The prototype uses the typed mock records in `src/lib/data/mock-dataset.ts`. Reviewer actions are held in client-side context and are not persisted to a database or sent to an external API. Image URLs, evidence records, audit metrics, and anomaly results should be treated as demonstration data.
-
-A production implementation would need authenticated access, durable storage, upload and processing services, geospatial and visual analysis pipelines, audit logging, and role-based permissions.
-
-## Development Notes
-
-Pages are implemented with the Next.js App Router. Shared providers and global overlays are mounted in `src/app/layout.tsx`. Styling is defined in `src/app/globals.css` and Tailwind configuration files at the repository root.
+- **Database**: Prisma ORM with SQLite local persistence (`dev.db`) and relational schema (Users, Projects, Activities, Claims, Evidence, Analyses, Anomalies, DuplicateMatches, ReviewDecisions, AuditEvents, Complaints).
+- **Authentication**: Direct database authentication + NextAuth.js JWT session management with bcrypt password encryption.
+- **Role-Based Access Control**: Edge middleware guarding `/reviewer/*`, `/supervisor/*`, and `/citizen/*` portals.
+- **Verification Engines**:
+  - **Geo Engine**: Haversine distance & geofence validation
+  - **Temporal Engine**: Milestone sequence & timeline validation
+  - **Duplicate Engine**: SHA-256 exact match & pHash perceptual similarity
+  - **Metadata Engine**: EXIF completeness & manipulation detection
+  - **Fusion Engine**: 7-signal weighted integrity scoring (0–100) & risk classification
+  - **Explainability**: Natural-language anomaly reasoning & recommended auditor actions

@@ -5,37 +5,77 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n/context';
 import { useApp } from '@/lib/store/app-context';
-import { AbstractMark } from '@/components/ui/abstract-mark';
 import {
   Camera,
   Lock,
   ArrowRight,
-  ShieldCheck,
-  UserCheck,
-  KeyRound,
+  Eye,
+  EyeOff,
+  AlertCircle,
   CheckCircle2,
 } from 'lucide-react';
 
 export default function SupervisorLoginPage() {
   const router = useRouter();
   const { t } = useI18n();
-  const { loginUser } = useApp();
+  const { setAuthenticatedUser, addToast } = useApp();
 
-  const [supervisorId, setSupervisorId] = useState('SP-MH-4019');
-  const [password, setPassword] = useState('••••••••');
+  const [identifier, setIdentifier] = useState('supervisor.demo@example.com');
+  const [password, setPassword] = useState('Supervisor@2026!');
+  const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage('');
+
+    if (!identifier.trim()) {
+      setErrorMessage('Officer ID, email or phone is required.');
+      return;
+    }
+    if (!password) {
+      setErrorMessage('Password is required.');
+      return;
+    }
+
     setIsLoading(true);
-    setTimeout(() => {
-      loginUser('SUPERVISOR', {
-        name: 'Suresh Patil (Junior Engineer)',
-        district: 'Pune',
-        state: 'Maharashtra',
+
+    try {
+      const isEmail = identifier.includes('@');
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: isEmail ? identifier.trim() : undefined,
+          phone: !isEmail ? identifier.trim() : undefined,
+          password,
+          requiredRole: 'SUPERVISOR',
+        }),
       });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.authenticated) {
+        setErrorMessage(data?.error?.message || 'Invalid officer credentials or password.');
+        setIsLoading(false);
+        return;
+      }
+
+      setAuthenticatedUser(data.user);
+
+      addToast({
+        title: `Welcome, ${data.user.name}`,
+        description: 'Authenticated as SUPERVISOR. Loading field portal...',
+        type: 'success',
+      });
+
       router.push('/supervisor');
-    }, 400);
+    } catch (err) {
+      console.error('Supervisor login error:', err);
+      setErrorMessage('Unable to connect to authentication service.');
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -54,38 +94,77 @@ export default function SupervisorLoginPage() {
               Field Supervisor Login
             </h1>
             <p className="text-xs text-ink-secondary">
-              फील्ड सुपरवाइजर पोर्टल • Private Officer Portal
+              फील्ड सुपरवाइजर पोर्टल • Verified Field Officer Access
             </p>
           </div>
+
+          {/* Error Message Box */}
+          {errorMessage && (
+            <div className="p-3 bg-risk-critical/10 border border-risk-critical/30 rounded-xl flex items-start gap-2.5 text-xs text-risk-critical animate-page-enter">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <div className="flex-1 font-medium">{errorMessage}</div>
+            </div>
+          )}
 
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-4 text-xs">
             <div className="space-y-1">
               <label className="font-bold text-ink-primary block">
-                Supervisor Officer ID (अधिकारी आईडी):
+                Supervisor Email, Phone or Officer ID:
               </label>
               <input
                 type="text"
-                value={supervisorId}
-                onChange={(e) => setSupervisorId(e.target.value)}
-                placeholder="e.g. SP-MH-4019"
+                value={identifier}
+                onChange={(e) => {
+                  setIdentifier(e.target.value);
+                  if (errorMessage) setErrorMessage('');
+                }}
+                placeholder="supervisor.demo@example.com or 9845033441"
                 className="w-full px-3.5 py-2.5 rounded-lg bg-surface-sunken border border-border-hairline text-ink-primary font-mono text-sm focus:outline-none focus:border-india-green"
                 required
+                disabled={isLoading}
+                autoFocus
               />
             </div>
 
             <div className="space-y-1">
-              <label className="font-bold text-ink-primary block">
-                Password / Security Pin:
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password"
-                className="w-full px-3.5 py-2.5 rounded-lg bg-surface-sunken border border-border-hairline text-ink-primary text-sm focus:outline-none focus:border-india-green"
-                required
-              />
+              <div className="flex items-center justify-between">
+                <label className="font-bold text-ink-primary block">
+                  Password:
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-[11px] text-ink-muted hover:text-ink-primary flex items-center gap-1"
+                >
+                  {showPassword ? (
+                    <>
+                      <EyeOff className="w-3 h-3" />
+                      <span>Hide</span>
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="w-3 h-3" />
+                      <span>Show</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errorMessage) setErrorMessage('');
+                  }}
+                  placeholder="Enter officer password"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-surface-sunken border border-border-hairline text-ink-primary text-sm focus:outline-none focus:border-india-green pr-10"
+                  required
+                  disabled={isLoading}
+                />
+                <Lock className="w-4 h-4 text-ink-muted absolute right-3 top-3 pointer-events-none" />
+              </div>
             </div>
 
             <div className="p-3 rounded-lg bg-india-green/10 border border-india-green/30 text-[11px] text-ink-secondary space-y-1">
@@ -94,16 +173,18 @@ export default function SupervisorLoginPage() {
                 <span>Assigned Jurisdiction: Pune Rural District</span>
               </div>
               <p className="text-[10px] text-ink-muted">
-                Demo Credentials Loaded: Officer ID <code className="font-mono">SP-MH-4019</code>
+                Demo Account: <code className="font-mono">supervisor.demo@example.com</code>
               </p>
             </div>
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 rounded-xl bg-india-green text-surface font-bold text-xs hover:bg-india-green/90 transition-colors shadow-subtle flex items-center justify-center gap-2"
+              className={`w-full py-3 rounded-xl bg-india-green text-surface font-bold text-xs hover:bg-india-green/90 transition-colors shadow-subtle flex items-center justify-center gap-2 ${
+                isLoading ? 'opacity-70 cursor-not-allowed' : ''
+              }`}
             >
-              <span>{isLoading ? 'Authenticating...' : 'Sign In as Supervisor (लॉगिन करें)'}</span>
+              <span>{isLoading ? 'Authenticating with DB...' : 'Sign In as Supervisor (लॉगिन करें)'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>

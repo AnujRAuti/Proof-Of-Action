@@ -14,3 +14,7 @@ build/
 .DS_Store
 *.log
 EOF
+# Local-only files
+credentials.md
+prisma/dev.db
+*.tsbuildinfo

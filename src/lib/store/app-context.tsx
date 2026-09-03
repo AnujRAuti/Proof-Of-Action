@@ -62,12 +62,17 @@ export interface ToastMessage {
   timestamp: number;
 }
 
+export type AuthStatus = 'AUTH_LOADING' | 'AUTHENTICATED' | 'UNAUTHENTICATED' | 'AUTH_ERROR';
+
 interface AppContextType {
   currentUser: UserProfile | null;
   role: UserRole;
+  authStatus: AuthStatus;
   setRole: (role: UserRole) => void;
+  setAuthenticatedUser: (user: UserProfile) => void;
   loginUser: (role: UserRole, customUser?: Partial<UserProfile>) => void;
-  logoutUser: () => void;
+  logoutUser: () => Promise<void>;
+  syncSession: () => Promise<UserProfile | null>;
   evidenceList: EvidenceItem[];
   projects: Project[];
   auditEvents: AuditEvent[];
@@ -186,6 +191,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Role & User Account State
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [role, setRoleState] = useState<UserRole>('REVIEWER');
+  const [authStatus, setAuthStatus] = useState<AuthStatus>('AUTH_LOADING');
 
   const [evidenceList, setEvidenceList] = useState<EvidenceItem[]>(MOCK_EVIDENCE_ITEMS);
   const [projects] = useState<Project[]>(MOCK_PROJECTS);
@@ -199,6 +205,41 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const [hasHydrated, setHasHydrated] = useState(false);
+
+  // Sync session with backend /api/auth/me
+  const syncSession = async (): Promise<UserProfile | null> => {
+    try {
+      const res = await fetch('/api/auth/me');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.authenticated && data.user) {
+          const userProfile: UserProfile = {
+            id: data.user.id,
+            name: data.user.name,
+            email: data.user.email,
+            phone: data.user.phone,
+            role: data.user.role,
+            district: data.user.district,
+            state: data.user.state,
+            department: data.user.department,
+            isAadhaarVerified: data.user.isAadhaarVerified,
+          };
+          setCurrentUser(userProfile);
+          setRoleState(data.user.role);
+          setAuthStatus('AUTHENTICATED');
+          localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(userProfile));
+          return userProfile;
+        }
+      }
+      setCurrentUser(null);
+      setAuthStatus('UNAUTHENTICATED');
+      localStorage.removeItem(STORAGE_KEYS.user);
+      return null;
+    } catch {
+      setAuthStatus('UNAUTHENTICATED');
+      return null;
+    }
+  };
 
   useEffect(() => {
     const readStoredValue = <T,>(key: string): T | null => {
@@ -227,6 +268,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (savedSupervisorTasks) setSupervisorTasks(savedSupervisorTasks);
     if (savedDensity === 'comfortable' || savedDensity === 'compact') setDensityState(savedDensity);
     setHasHydrated(true);
+
+    // Verify and hydrate authentic database session
+    syncSession();
   }, []);
 
   // Prototype persistence keeps a presenter from losing a review decision when
@@ -240,53 +284,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(STORAGE_KEYS.supervisorTasks, JSON.stringify(supervisorTasks));
   }, [auditEvents, complaints, evidenceList, hasHydrated, supervisorTasks]);
 
+  const setAuthenticatedUser = (user: UserProfile) => {
+    setCurrentUser(user);
+    setRoleState(user.role);
+    setAuthStatus('AUTHENTICATED');
+    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(user));
+  };
+
   const loginUser = (newRole: UserRole, customUser?: Partial<UserProfile>) => {
-    let mockProfile: UserProfile;
+    const profile: UserProfile = {
+      id: customUser?.id || (newRole === 'CITIZEN' ? 'USR-CITIZEN-01' : newRole === 'SUPERVISOR' ? 'USR-SUP-01' : 'USR-REV-01'),
+      name: customUser?.name || (newRole === 'CITIZEN' ? 'Ramesh Sharma' : newRole === 'SUPERVISOR' ? 'Suresh Patil' : 'Rajesh Kulkarni'),
+      role: newRole,
+      email: customUser?.email,
+      phone: customUser?.phone,
+      district: customUser?.district || 'Pune',
+      state: customUser?.state || 'Maharashtra',
+      department: customUser?.department,
+      isAadhaarVerified: customUser?.isAadhaarVerified,
+      ...customUser,
+    };
 
-    if (newRole === 'CITIZEN') {
-      mockProfile = {
-        id: 'USR-CITIZEN-01',
-        name: 'Ramesh Sharma',
-        role: 'CITIZEN',
-        phone: '+91 98230 11223',
-        district: 'Pune',
-        state: 'Maharashtra',
-        pincode: '412301',
-        isAadhaarVerified: true,
-        ...customUser,
-      };
-    } else if (newRole === 'SUPERVISOR') {
-      mockProfile = {
-        id: 'USR-SUP-01',
-        name: 'Suresh Patil (Junior Engineer)',
-        role: 'SUPERVISOR',
-        phone: '+91 98450 33441',
-        email: 'suresh.patil@field.gov.in',
-        district: 'Pune',
-        state: 'Maharashtra',
-        department: 'PMGSY Rural Roads Division',
-        ...customUser,
-      };
-    } else {
-      mockProfile = {
-        id: 'USR-REV-01',
-        name: 'Rajesh Kulkarni (SE & Lead Auditor)',
-        role: 'REVIEWER',
-        email: 'r.kulkarni@pwd.maharashtra.gov.in',
-        district: 'Pune',
-        state: 'Maharashtra',
-        department: 'State Quality Audit Division',
-        ...customUser,
-      };
-    }
-
-    setCurrentUser(mockProfile);
-    setRoleState(newRole);
-    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(mockProfile));
+    setAuthenticatedUser(profile);
 
     addToast({
-      title: `Welcome, ${mockProfile.name}`,
-      description: `Authenticated as ${newRole}. Loading customized dashboard...`,
+      title: `Welcome, ${profile.name}`,
+      description: `Authenticated as ${newRole}. Accessing ${newRole.toLowerCase()} portal...`,
       type: 'success',
     });
 
@@ -300,10 +323,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const logoutUser = () => {
+  const logoutUser = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {}
+
     setCurrentUser(null);
+    setAuthStatus('UNAUTHENTICATED');
     localStorage.removeItem(STORAGE_KEYS.user);
-    router.push('/');
+    router.push('/login');
     addToast({
       title: 'Logged Out',
       description: 'Session ended safely.',
@@ -513,9 +541,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       value={{
         currentUser,
         role,
+        authStatus,
         setRole: handleSetRole,
+        setAuthenticatedUser,
         loginUser,
         logoutUser,
+        syncSession,
         evidenceList,
         projects,
         auditEvents,

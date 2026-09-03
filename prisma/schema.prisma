@@ -1,0 +1,316 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums (Prisma handles enums in SQLite client-side) ────────────────────────
+
+enum UserRole {
+  CITIZEN
+  SUPERVISOR
+  REVIEWER
+  PROGRAM_ADMIN
+  AUDITOR
+}
+
+enum EvidenceStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  FLAGGED
+  OVERRIDDEN
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ReviewAction {
+  APPROVE
+  REJECT
+  FLAG
+  INSPECTION_REQUESTED
+  OVERRIDE
+}
+
+enum EvidenceStage {
+  before
+  during
+  after
+  completion_doc
+}
+
+enum ActivityStatus {
+  COMPLETED
+  IN_PROGRESS
+  PENDING
+}
+
+enum ClaimStatus {
+  UNVERIFIED
+  SUPPORTED
+  CONTRADICTED
+  PARTIALLY_SUPPORTED
+}
+
+enum AnomalyType {
+  DUPLICATE_EVIDENCE
+  CROSS_PROJECT_DUPLICATE
+  LOCATION_MISMATCH
+  TEMPORAL_MISMATCH
+  METADATA_ANOMALY
+  IMAGE_MANIPULATION_RISK
+  CLAIM_MISMATCH
+  INCOMPLETE_EVIDENCE
+  VISUAL_INCONSISTENCY
+  QUANTITY_UNSUPPORTED
+  IMPOSSIBLE_TRAVEL
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ProjectStatus {
+  IN_PROGRESS
+  COMPLETED
+  UNDER_AUDIT
+  FLAGGED_HOLD
+}
+
+enum ComplaintStatus {
+  RECEIVED
+  IN_REVIEW
+  RESOLVED
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model User {
+  id                String           @id @default(cuid())
+  name              String
+  email             String?          @unique
+  phone             String?          @unique
+  passwordHash      String
+  role              UserRole
+  department        String?
+  district          String?
+  state             String?
+  pincode           String?
+  isAadhaarVerified Boolean          @default(false)
+  isActive          Boolean          @default(true)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  evidence          Evidence[]       @relation("UploadedEvidence")
+  reviews           ReviewDecision[]
+  auditEvents       AuditEvent[]
+  complaints        Complaint[]
+
+  @@index([role])
+}
+
+model Project {
+  id                  String        @id
+  name                String
+  scheme              String
+  ministry            String?
+  state               String
+  district            String
+  block               String
+  budgetInr           Float?
+  contractor          String?
+  centroidLat         Float
+  centroidLng         Float
+  geofenceRadiusMeter Int
+  startDate           DateTime
+  endDate             DateTime
+  status              ProjectStatus @default(IN_PROGRESS)
+  imageUrl            String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  evidence            Evidence[]
+  activities          Activity[]
+  complaints          Complaint[]
+
+  @@index([state, district])
+  @@index([scheme])
+}
+
+model Activity {
+  id        String         @id @default(cuid())
+  projectId String
+  name      String
+  status    ActivityStatus @default(PENDING)
+  createdAt DateTime       @default(now())
+  project   Project        @relation(fields: [projectId], references: [id])
+  claims    Claim[]
+  evidence  Evidence[]
+
+  @@index([projectId])
+}
+
+model Claim {
+  id         String      @id @default(cuid())
+  activityId String
+  text       String
+  status     ClaimStatus @default(UNVERIFIED)
+  createdAt  DateTime    @default(now())
+  activity   Activity    @relation(fields: [activityId], references: [id])
+  evidence   Evidence[]
+
+  @@index([activityId])
+}
+
+model Evidence {
+  id             String         @id
+  projectId      String
+  activityId     String?
+  claimId        String?
+  uploadedById   String
+  objectKey      String
+  mimeType       String
+  sizeBytes      Int
+  sha256         String         @unique
+  pHash          String?
+  stage          EvidenceStage  @default(after)
+  capturedAt     DateTime?
+  latitude       Float?
+  longitude      Float?
+  gpsAccuracyM   Float?
+  status         EvidenceStatus @default(PENDING)
+  riskLevel      RiskLevel?
+  integrityScore Int?
+  modelVersion   String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  project     Project          @relation(fields: [projectId], references: [id])
+  activity    Activity?        @relation(fields: [activityId], references: [id])
+  claim       Claim?           @relation(fields: [claimId], references: [id])
+  uploadedBy  User             @relation("UploadedEvidence", fields: [uploadedById], references: [id])
+  analyses    AnalysisResult[]
+  anomalies   Anomaly[]
+  reviews     ReviewDecision[]
+  auditEvents AuditEvent[]
+  matches     DuplicateMatch[] @relation("SourceEvidence")
+  matchedBy   DuplicateMatch[] @relation("MatchedEvidence")
+
+  @@index([projectId, status])
+  @@index([latitude, longitude])
+  @@index([sha256])
+  @@index([pHash])
+}
+
+model AnalysisResult {
+  id                String   @id @default(cuid())
+  evidenceId        String
+  jobId             String
+  gpsScore          Int?
+  temporalScore     Int?
+  duplicateRisk     Int?
+  visualScore       Int?
+  authenticityScore Int?
+  claimMatch        Int?
+  metadataScore     Int?
+  completeness      Int?
+  overallIntegrity  Int?
+  riskScore         Int?
+  explanations      String // JSON string for SQLite compatibility
+  rawResult         String? // JSON string for SQLite compatibility
+  createdAt         DateTime @default(now())
+  evidence          Evidence @relation(fields: [evidenceId], references: [id])
+
+  @@index([evidenceId, createdAt])
+}
+
+model Anomaly {
+  id             String      @id @default(cuid())
+  evidenceId     String
+  type           AnomalyType
+  severity       Severity
+  confidence     Int
+  title          String
+  description    String
+  supportingData String?
+  resolvedAt     DateTime?
+  resolvedBy     String?
+  createdAt      DateTime    @default(now())
+  evidence       Evidence    @relation(fields: [evidenceId], references: [id])
+
+  @@index([evidenceId])
+  @@index([type, severity])
+}
+
+model DuplicateMatch {
+  id                String   @id @default(cuid())
+  sourceEvidenceId  String
+  matchedEvidenceId String
+  method            String
+  similarity        Float
+  createdAt         DateTime @default(now())
+  sourceEvidence    Evidence @relation("SourceEvidence", fields: [sourceEvidenceId], references: [id])
+  matchedEvidence   Evidence @relation("MatchedEvidence", fields: [matchedEvidenceId], references: [id])
+
+  @@unique([sourceEvidenceId, matchedEvidenceId, method])
+}
+
+model ReviewDecision {
+  id         String       @id @default(cuid())
+  evidenceId String
+  reviewerId String
+  action     ReviewAction
+  reason     String
+  createdAt  DateTime     @default(now())
+  evidence   Evidence     @relation(fields: [evidenceId], references: [id])
+  reviewer   User         @relation(fields: [reviewerId], references: [id])
+
+  @@index([evidenceId, createdAt])
+}
+
+model AuditEvent {
+  id            String    @id @default(cuid())
+  evidenceId    String?
+  actorId       String
+  action        String
+  previousState String?
+  newState      String?
+  reason        String?
+  metadata      String? // JSON string for SQLite compatibility
+  createdAt     DateTime  @default(now())
+  evidence      Evidence? @relation(fields: [evidenceId], references: [id])
+  actor         User      @relation(fields: [actorId], references: [id])
+
+  @@index([evidenceId, createdAt])
+  @@index([actorId])
+}
+
+model Complaint {
+  id                 String          @id @default(cuid())
+  trackingId         String          @unique
+  projectId          String
+  citizenId          String
+  category           String
+  description        String
+  voiceNoteKey       String?
+  photoKey           String?
+  status             ComplaintStatus @default(RECEIVED)
+  statusLabel        String?
+  departmentResponse String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  project            Project         @relation(fields: [projectId], references: [id])
+  citizen            User            @relation(fields: [citizenId], references: [id])
+
+  @@index([projectId])
+  @@index([citizenId])
+}

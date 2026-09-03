@@ -7,10 +7,11 @@ import { useI18n } from '@/lib/i18n/context';
 import { useApp } from '@/lib/store/app-context';
 import {
   ShieldCheck,
-  Building2,
   Lock,
   ArrowRight,
-  CheckCircle2,
+  Eye,
+  EyeOff,
+  AlertCircle,
   KeyRound,
   FileCheck2,
 } from 'lucide-react';
@@ -18,23 +19,62 @@ import {
 export default function ReviewerLoginPage() {
   const router = useRouter();
   const { t } = useI18n();
-  const { loginUser } = useApp();
+  const { setAuthenticatedUser, addToast } = useApp();
 
-  const [email, setEmail] = useState('rajesh.sharma@gov.in');
-  const [department, setDepartment] = useState('Ministry of Rural Development');
+  const [email, setEmail] = useState('reviewer.demo@example.com');
+  const [password, setPassword] = useState('Reviewer@2026!');
+  const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage('');
+
+    if (!email.trim()) {
+      setErrorMessage('Official email is required.');
+      return;
+    }
+    if (!password) {
+      setErrorMessage('Password is required.');
+      return;
+    }
+
     setIsLoading(true);
-    setTimeout(() => {
-      loginUser('REVIEWER', {
-        name: 'Rajesh Sharma (State Quality Coordinator)',
-        district: 'Pune',
-        state: 'Maharashtra',
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+          requiredRole: 'REVIEWER',
+        }),
       });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.authenticated) {
+        setErrorMessage(data?.error?.message || 'Invalid email or password.');
+        setIsLoading(false);
+        return;
+      }
+
+      setAuthenticatedUser(data.user);
+
+      addToast({
+        title: `Welcome, ${data.user.name}`,
+        description: 'Authenticated as REVIEWER. Loading dashboard...',
+        type: 'success',
+      });
+
       router.push('/reviewer');
-    }, 400);
+    } catch (err) {
+      console.error('Reviewer login error:', err);
+      setErrorMessage('Unable to connect to authentication service.');
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -50,12 +90,20 @@ export default function ReviewerLoginPage() {
               <ShieldCheck className="w-6 h-6" />
             </div>
             <h1 className="font-serif font-bold text-xl text-ink-primary">
-              Government Reviewer SSO
+              Government Reviewer Login
             </h1>
             <p className="text-xs text-ink-secondary">
-              Parichay / MeriPehchaan Institutional Single Sign-On
+              Parichay / MeriPehchaan Institutional Authentication
             </p>
           </div>
+
+          {/* Error Message Box */}
+          {errorMessage && (
+            <div className="p-3 bg-risk-critical/10 border border-risk-critical/30 rounded-xl flex items-start gap-2.5 text-xs text-risk-critical animate-page-enter">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <div className="flex-1 font-medium">{errorMessage}</div>
+            </div>
+          )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4 text-xs">
@@ -66,24 +114,56 @@ export default function ReviewerLoginPage() {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (errorMessage) setErrorMessage('');
+                }}
                 placeholder="officer.name@nic.in / @gov.in"
-                className="w-full px-3.5 py-2.5 rounded-lg bg-surface-sunken border border-border-hairline text-ink-primary font-mono text-sm focus:outline-none"
+                className="w-full px-3.5 py-2.5 rounded-lg bg-surface-sunken border border-border-hairline text-ink-primary font-mono text-sm focus:outline-none focus:border-navy"
                 required
+                disabled={isLoading}
+                autoFocus
               />
             </div>
 
             <div className="space-y-1">
-              <label className="font-bold text-ink-primary block">
-                Department / Authority:
-              </label>
-              <input
-                type="text"
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg bg-surface-sunken border border-border-hairline text-ink-primary text-sm focus:outline-none"
-                required
-              />
+              <div className="flex items-center justify-between">
+                <label className="font-bold text-ink-primary block">
+                  Password:
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-[11px] text-ink-muted hover:text-ink-primary flex items-center gap-1"
+                >
+                  {showPassword ? (
+                    <>
+                      <EyeOff className="w-3 h-3" />
+                      <span>Hide</span>
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="w-3 h-3" />
+                      <span>Show</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errorMessage) setErrorMessage('');
+                  }}
+                  placeholder="Enter secure password"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-surface-sunken border border-border-hairline text-ink-primary text-sm focus:outline-none focus:border-navy pr-10"
+                  required
+                  disabled={isLoading}
+                />
+                <Lock className="w-4 h-4 text-ink-muted absolute right-3 top-3 pointer-events-none" />
+              </div>
             </div>
 
             <div className="p-3.5 rounded-xl bg-navy/5 dark:bg-[#7FA8D9]/10 border border-navy/20 dark:border-[#7FA8D9]/30 text-[11px] text-ink-secondary space-y-1.5">
@@ -99,9 +179,11 @@ export default function ReviewerLoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 rounded-xl bg-navy text-surface font-bold text-xs hover:bg-navy/90 dark:bg-[#7FA8D9] dark:text-navy transition-colors shadow-subtle flex items-center justify-center gap-2"
+              className={`w-full py-3 rounded-xl bg-navy text-white font-bold text-xs hover:bg-navy/90 dark:bg-[#7FA8D9] dark:text-[#0B2A52] transition-colors shadow-subtle flex items-center justify-center gap-2 ${
+                isLoading ? 'opacity-70 cursor-not-allowed' : ''
+              }`}
             >
-              <span>{isLoading ? 'Verifying MeriPehchaan Token...' : 'Authenticate with Gov SSO (मेरी पहचान)'}</span>
+              <span>{isLoading ? 'Verifying Credentials with DB...' : 'Authenticate as Reviewer'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
