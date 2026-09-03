@@ -31,12 +31,12 @@ class ImageProcessor:
                 "content": [
                     {"type": "text", "text": "Before image:"},
                     {"type": "image", "image": before_img},
-                    {"type": "text", "text": "The date for the before image is - " + before_date},
+                    {"type": "text", "text": "The date for the before image is - " + before_date.isoformat()},
                     {"type": "text", "text": "After image:"},
                     {"type": "image", "image": after_img},
-                    {"type": "text", "text": "The date for the after image is - " + after_date},
-                    {"type": "text", "text": "The physical distance between both photographs is: " + distance},
-                    {"type": "text", "text": "The time gap between both photographs is: " + time_gap},
+                    {"type": "text", "text": "The date for the after image is - " + after_date.isoformat()},
+                    {"type": "text", "text": f"The physical distance between both photographs is: {distance}"},
+                    {"type": "text", "text": f"The time gap between both photographs is: {time_gap}"},
                     {"type": "text", "text": "/think"},
                 ],
             }
